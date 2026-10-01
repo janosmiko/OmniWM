@@ -53,6 +53,7 @@ extension ActionCatalog {
                 binding: KeyBinding(keyCode: UInt32(kVK_ANSI_L), modifiers: UInt32(optionKey | shiftKey)),
                 keywords: ["layout", "niri", "dwindle"]
             ),
+            toggleAccordionActionSpec,
             IPCPresentationCommand.overview.actionSpec(),
             IPCPresentationCommand.systemStats.actionSpec()
         ])
@@ -65,6 +66,16 @@ extension ActionCatalog {
             category: .focus,
             binding: .unassigned,
             keywords: ["float", "floating", "tiled", "focus", "toggle"]
+        )
+    }
+
+    private static var toggleAccordionActionSpec: ActionSpec {
+        action(
+            id: "toggleAccordion",
+            command: .workspace(.toggleAccordion),
+            category: .layout,
+            binding: .unassigned,
+            keywords: ["accordion", "niri"]
         )
     }
 

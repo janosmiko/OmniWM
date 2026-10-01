@@ -79,7 +79,8 @@ extension IPCJSONWriter {
         switch value {
         case let .set(layout):
             try argument("layout", layout, &first)
-        case .toggle:
+        case .toggle,
+             .toggleAccordion:
             break
         }
     }

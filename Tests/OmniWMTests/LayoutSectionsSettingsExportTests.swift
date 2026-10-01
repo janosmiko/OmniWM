@@ -27,7 +27,9 @@ final class LayoutSectionsSettingsExportTests: XCTestCase {
             "defaultContainerPrimarySpan": .float(0.5),
             "edgeGaps": .boolean(true),
             "resizeStepPercent": .integer(5),
-            "moveWindowStacksIntoColumn": .boolean(true)
+            "moveWindowStacksIntoColumn": .boolean(true),
+            "accordionPadding": .float(30),
+            "accordionAxis": .string("horizontal")
         ]))
         XCTAssertEqual(tree["dwindle"], .table([
             "smartSplit": .boolean(false),

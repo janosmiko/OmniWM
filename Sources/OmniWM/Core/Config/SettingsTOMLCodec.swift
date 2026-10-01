@@ -5,7 +5,7 @@ import Foundation
 import TOML
 
 enum SettingsTOMLCodec {
-    static let currentSchemaVersion = 5
+    static let currentSchemaVersion = 6
 
     static func encode(_ export: SettingsExport) throws -> Data {
         try encode(export, preservingUnknownKeysFrom: nil)

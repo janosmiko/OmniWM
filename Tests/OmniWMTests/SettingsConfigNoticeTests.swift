@@ -91,7 +91,7 @@ final class SettingsConfigNoticeTests: XCTestCase {
 
     func testUnsupportedSchemaShowsBlockedWriteNoticeAndClearsAfterCorrection() throws {
         let original = String(decoding: try SettingsTOMLCodec.encode(.defaults()), as: UTF8.self)
-        let future = original.replacingOccurrences(of: "schemaVersion = 5", with: "schemaVersion = 6")
+        let future = original.replacingOccurrences(of: "schemaVersion = 6", with: "schemaVersion = 7")
         let fixture = try Fixture(initialText: future)
         defer { fixture.close() }
         XCTAssertTrue(try fixture.panel().isVisible)
