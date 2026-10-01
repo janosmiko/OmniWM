@@ -115,6 +115,8 @@ struct SettingsExport: Equatable {
         var moveWindowStacksIntoColumn: Bool?
         var allowOverscroll: Bool?
         var overscrollVisibleStripPercent: Int?
+        var accordionPadding: Double?
+        var accordionAxis: AccordionAxis?
     }
 
     struct Dwindle: Codable, Equatable {

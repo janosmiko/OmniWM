@@ -149,7 +149,9 @@ extension WMController {
             singleWindowFit: settings.niri.singleWindowFit,
             edgeOverscroll: settings.niri.edgeOverscroll,
             containerPrimarySpanPresets: settings.niri.containerPrimarySpanPresets,
-            defaultContainerPrimarySpan: settings.niri.defaultContainerPrimarySpan
+            defaultContainerPrimarySpan: settings.niri.defaultContainerPrimarySpan,
+            accordionPadding: settings.niri.accordionPadding,
+            accordionAxis: settings.niri.accordionAxis
         )
 
         if dwindleEngine == nil {

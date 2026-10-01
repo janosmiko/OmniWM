@@ -85,6 +85,8 @@ extension CommandHandler {
             controller.workspaceNavigationHandler.workspaceBackAndForth()
         case .toggleLayout:
             toggleWorkspaceLayout()
+        case .toggleAccordion:
+            toggleAccordion()
         }
         return .executed
     }

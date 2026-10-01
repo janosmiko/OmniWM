@@ -68,6 +68,10 @@ enum SettingsTOMLMigration {
         "setWindowSecondarySpan.increase10Percent": "resizeWindowSecondarySpan.grow"
     ]
 
+    private static let versionSixHotkeyIDs = ["toggleAccordion"]
+
+    static let hotkeyIDsAddedInVersionSix = Set(versionSixHotkeyIDs)
+
     private struct PersistedHotkeyArray: Decodable {
         let hotkeys: [PersistedHotkeyBinding]
     }
@@ -82,14 +86,15 @@ enum SettingsTOMLMigration {
         let versionThreeDefaultedPaths = version <= 2 ? try migrateVersionTwo(&raw) : []
         let versionFourAddedHotkeyIDs = version <= 3 ? migrateVersionThree(&raw) : []
         let versionFiveMappedHotkeys = version <= 4 ? migrateVersionFour(&raw) : []
+        let versionSix = version <= 5 ? migrateVersionFive(&raw) : (added: [], mapped: [])
         canonicalizeMigratedHotkeys(in: &raw)
         return SettingsMigrationReport(
             fromVersion: version,
             toVersion: SettingsTOMLCodec.currentSchemaVersion,
             defaultedPaths: (versionOneReport?.defaultedPaths ?? []) + versionThreeDefaultedPaths,
             addedHotkeyIDs: (versionOneReport?.addedHotkeyIDs ?? []) + versionTwoAddedHotkeyIDs
-                + versionFourAddedHotkeyIDs,
-            mappedHotkeys: (versionOneReport?.mappedHotkeys ?? []) + versionFiveMappedHotkeys,
+                + versionFourAddedHotkeyIDs + versionSix.added,
+            mappedHotkeys: (versionOneReport?.mappedHotkeys ?? []) + versionFiveMappedHotkeys + versionSix.mapped,
             retiredHotkeys: versionOneReport?.retiredHotkeys ?? []
         )
     }
@@ -290,6 +295,25 @@ enum SettingsTOMLMigration {
         )
         raw["hotkeys"] = .array(migrated.entries)
         return migrated.mapped
+    }
+
+    private static func migrateVersionFive(
+        _ raw: inout [String: TOMLNode]
+    ) -> (added: [String], mapped: [SettingsHotkeyMapping]) {
+        defer { raw["schemaVersion"] = .integer(6) }
+        guard case let .array(entries) = raw["hotkeys"] else { return ([], []) }
+
+        // Accordion builds wrote schema 5 before upstream used 5 for the resize rename, so rerun it.
+        let migrated = migrateLegacyHotkeyEntries(
+            entries,
+            explicitCurrentIDs: Set(entries.compactMap(hotkeyID)),
+            mappings: versionFiveHotkeyMappings,
+            retirements: [:]
+        )
+        var migratedEntries = migrated.entries
+        let addedIDs = appendMissingUnassignedHotkeys(versionSixHotkeyIDs, to: &migratedEntries)
+        raw["hotkeys"] = .array(migratedEntries)
+        return (addedIDs, migrated.mapped)
     }
 
     private static func appendMissingUnassignedHotkeys(

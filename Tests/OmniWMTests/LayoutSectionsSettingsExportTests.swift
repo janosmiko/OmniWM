@@ -29,7 +29,9 @@ final class LayoutSectionsSettingsExportTests: XCTestCase {
             "resizeStepPercent": .integer(5),
             "moveWindowStacksIntoColumn": .boolean(true),
             "allowOverscroll": .boolean(false),
-            "overscrollVisibleStripPercent": .integer(5)
+            "overscrollVisibleStripPercent": .integer(5),
+            "accordionPadding": .float(30),
+            "accordionAxis": .string("horizontal")
         ]))
         XCTAssertEqual(tree["dwindle"], .table([
             "smartSplit": .boolean(false),

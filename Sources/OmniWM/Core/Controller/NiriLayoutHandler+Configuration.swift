@@ -15,6 +15,10 @@ extension NiriLayoutHandler {
         engine.centerFocusedColumn = centerFocusedColumn
         engine.alwaysCenterSingleColumn = alwaysCenterSingleColumn
         engine.renderStyle.tabIndicatorWidth = controller.tabRailStyle.reservedWidth
+        engine.updateAccordionStyle(
+            padding: CGFloat(controller.settings.niri.accordionPadding),
+            axis: controller.settings.niri.accordionAxis
+        )
         engine.animationClock = controller.animationClock
         controller.niriEngine = engine
 
@@ -80,7 +84,9 @@ extension NiriLayoutHandler {
         singleWindowFit: SingleWindowFit? = nil,
         edgeOverscroll: NiriEdgeOverscroll? = nil,
         containerPrimarySpanPresets: [Double]? = nil,
-        defaultContainerPrimarySpan: Double?? = nil
+        defaultContainerPrimarySpan: Double?? = nil,
+        accordionPadding: Double? = nil,
+        accordionAxis: AccordionAxis? = nil
     ) {
         guard let controller else { return }
         controller.workspaceManager.withEngineMutationScope {
@@ -92,7 +98,9 @@ extension NiriLayoutHandler {
                 singleWindowFit: singleWindowFit,
                 edgeOverscroll: edgeOverscroll,
                 presetContainerPrimarySpans: containerPrimarySpanPresets?.map { .proportion($0) },
-                defaultContainerPrimarySpan: defaultContainerPrimarySpan.map { $0.map { CGFloat($0) } }
+                defaultContainerPrimarySpan: defaultContainerPrimarySpan.map { $0.map { CGFloat($0) } },
+                accordionPadding: accordionPadding.map { CGFloat($0) },
+                accordionAxis: accordionAxis
             )
         }
         refreshResolvedMonitorSettings(rebalanceChangedSpans: defaultContainerPrimarySpan != nil)
