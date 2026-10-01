@@ -89,6 +89,8 @@ func normalizedTopStrut(top: CGFloat, menuBarInset: CGFloat, reservedTopInset: C
 
 struct NiriRenderStyle {
     var tabIndicatorWidth: CGFloat
+    var accordionPadding: CGFloat = 30
+    var accordionAxis: AccordionAxis = .horizontal
 
     static let `default` = NiriRenderStyle(
         tabIndicatorWidth: 0
@@ -101,6 +103,8 @@ final class NiriWorkspaceState {
     var attachedMonitorId: Monitor.ID?
     var manualWidthColumnCount: Int?
     var manualHeightColumnCount: Int?
+    var isAccordion = false
+    var accordionActiveColumnId: NodeId?
 
     init(workspaceId: WorkspaceDescriptor.ID) {
         root = NiriRoot(workspaceId: workspaceId)

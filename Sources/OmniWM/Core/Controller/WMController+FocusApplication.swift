@@ -7,6 +7,7 @@ import Foundation
 extension WMController {
     func shouldRaiseManagedFocus(origin: ManagedFocusOrigin, entry: borrowing WindowState) -> Bool {
         guard origin == .focusFollowsMouse else { return true }
+        if !accordionFocusRaiseOrder(for: entry).isEmpty { return true }
         guard settings.focus.raiseOnMouseFocus else { return false }
         guard entry.mode == .tiling, let windowId = UInt32(exactly: entry.windowId) else { return true }
         var candidates: Set<UInt32> = []
@@ -132,6 +133,11 @@ extension WMController {
         confirmSameAppFocusHandoff(liveRequest, sourceToken: sourceToken, isRetry: isRetry)
     }
 
+    func accordionFocusRaiseOrder(for entry: WindowState) -> [WindowToken] {
+        guard workspaceManager.activeLayoutKind(for: entry.workspaceId) == .niri else { return [] }
+        return niriEngine?.accordionRaiseOrder(for: entry.token, in: entry.workspaceId) ?? []
+    }
+
     private func validateMouseFocusRequest(_ liveRequest: ManagedFocusRequest, validatesPointer: Bool) -> Bool {
         if liveRequest.origin == .focusFollowsMouse {
             guard focusFollowsMouseEnabled else {
@@ -159,7 +165,14 @@ extension WMController {
         entry: WindowState,
         raisesWindow: Bool
     ) -> Bool {
-        let applied = raisesWindow
+        let accordionOrder = accordionFocusRaiseOrder(for: entry)
+        for token in accordionOrder.dropLast() {
+            guard let sibling = workspaceManager.entry(for: token),
+                  canFocusWindow(pid: sibling.pid, windowId: sibling.windowId)
+            else { continue }
+            windowFocusOperations.raiseWindow(sibling.axRef.element)
+        }
+        let applied = raisesWindow || !accordionOrder.isEmpty
             ? performWindowFronting(pid: entry.pid, windowId: entry.windowId, axRef: entry.axRef)
             : submitWindowFocus(pid: entry.pid, windowId: entry.windowId, axRef: entry.axRef)
         if applied, case .awaitingSameAppActivation = liveRequest.phase {

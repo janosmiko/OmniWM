@@ -122,6 +122,11 @@ extension NiriLayoutEngine {
                 motion: nil
             )
         }
+        if isAccordion(in: workspaceId) {
+            let selection = NiriViewportSelection(state: state, workspaceId: workspaceId)
+            layoutAccordion(projectedColumns, selection: selection, context: context, result: &result)
+            return
+        }
         if let single = singleWindowLayoutContext(in: workspaceId, excluding: excludedTokens) {
             layoutSingleWindow(single, context: context, result: &result)
             return
