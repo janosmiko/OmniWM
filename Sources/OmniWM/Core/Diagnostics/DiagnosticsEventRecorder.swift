@@ -68,6 +68,8 @@ final class DiagnosticsEventRecorder: @unchecked Sendable {
             recordVerbose(name: "cgs.frameChanged", windowId: windowId)
         case let .orderChanged(windowId):
             recordVerbose(name: "cgs.orderChanged", windowId: windowId)
+        case let .orderedOut(windowId):
+            recordLifecycle(name: "cgs.orderedOut", windowId: windowId)
         case let .titleChanged(windowId):
             recordVerbose(name: "cgs.titleChanged", windowId: windowId)
         case let .frontAppChanged(pid):

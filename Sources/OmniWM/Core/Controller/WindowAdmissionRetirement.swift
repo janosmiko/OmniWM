@@ -79,7 +79,29 @@ extension AXEventHandler {
     }
 
     func retireManagedWindowFromAuthoritativeRescan(_ entry: WindowState) {
-        retireManagedWindow(entry, reason: .authoritativeRescan)
+        guard let workspaceManager = controller?.workspaceManager else { return }
+        // The app reports "no focused window" before the rescan confirms this window is gone.
+        if workspaceManager.selectedManagedToken == entry.token,
+           workspaceManager.nativeFocusOwner == .external(pid: entry.pid, windowId: nil)
+        {
+            _ = workspaceManager.confirmManagedFocus(
+                entry.token,
+                in: entry.workspaceId,
+                activateWorkspaceOnMonitor: false
+            )
+        }
+        guard workspaceManager.nativeManagedFocusToken == entry.token else {
+            retireManagedWindow(entry, reason: .authoritativeRescan)
+            return
+        }
+        let recovery = prepareManagedWindowRemoval(entry)
+        retireManagedWindow(
+            entry,
+            reason: .destroyed(
+                shouldRecoverFocus: recovery.shouldRecoverFocus,
+                allowsPreferredRecoveryToken: recovery.closeRecoveryArmed
+            )
+        )
     }
 
     func retireManagedWindowAfterDecisionRejection(_ entry: WindowState) {

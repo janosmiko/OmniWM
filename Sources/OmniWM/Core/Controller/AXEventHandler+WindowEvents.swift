@@ -47,6 +47,12 @@ extension AXEventHandler {
         case let .orderChanged(windowId):
             handleWindowOrderChanged(windowId: windowId)
 
+        case let .orderedOut(windowId):
+            // Some apps (Spark, Slack) hide their last window on close instead of destroying it.
+            if let entry = controller.workspaceManager.entry(forWindowId: Int(windowId)) {
+                requestTargetedFullRescan(for: [entry.pid])
+            }
+
         case let .titleChanged(windowId):
             guard case let .exact(token, windowInfo) = resolveWindowServerIdentity(windowId),
                   controller.workspaceManager.entry(for: token) != nil

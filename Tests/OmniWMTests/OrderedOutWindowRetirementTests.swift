@@ -54,6 +54,116 @@ final class OrderedOutWindowRetirementTests: XCTestCase {
         XCTAssertEqual(refresh.rescanScope, .targeted(appPIDs: [token.pid], nativeSpaceIds: []))
     }
 
+    func testOrderedOutManagedWindowRescansItsApp() throws {
+        let controller = WindowAdmissionTestSupport.controller()
+        let workspaceId = try XCTUnwrap(
+            controller.workspaceManager.workspaceId(for: "1", createIfMissing: true)
+        )
+        let token = controller.workspaceManager.addWindow(
+            AXWindowRef(element: AXUIElementCreateApplication(913_005), windowId: 913_105),
+            pid: 913_005,
+            windowId: 913_105,
+            to: workspaceId
+        )
+        controller.hasStartedServices = true
+        controller.layoutRefreshController.layoutState.activeRefresh = nil
+
+        controller.axEventHandler.handleCGSEvent(.orderedOut(windowId: 913_999))
+        XCTAssertNil(controller.layoutRefreshController.layoutState.activeRefresh)
+
+        controller.axEventHandler.handleCGSEvent(.orderedOut(windowId: UInt32(token.windowId)))
+        let refresh = try XCTUnwrap(controller.layoutRefreshController.layoutState.activeRefresh)
+        XCTAssertEqual(refresh.kind, .fullRescan)
+        XCTAssertEqual(refresh.rescanScope, .targeted(appPIDs: [token.pid], nativeSpaceIds: []))
+    }
+
+    func testRescanRetirementOfFocusedWindowRecoversFocus() throws {
+        let controller = WindowAdmissionTestSupport.controller()
+        let workspaceId = try XCTUnwrap(
+            controller.workspaceManager.workspaceId(for: "1", createIfMissing: true)
+        )
+        let focused = controller.workspaceManager.addWindow(
+            AXWindowRef(element: AXUIElementCreateApplication(913_006), windowId: 913_106),
+            pid: 913_006,
+            windowId: 913_106,
+            to: workspaceId
+        )
+        let other = controller.workspaceManager.addWindow(
+            AXWindowRef(element: AXUIElementCreateApplication(913_007), windowId: 913_107),
+            pid: 913_007,
+            windowId: 913_107,
+            to: workspaceId
+        )
+        XCTAssertTrue(
+            controller.workspaceManager.confirmManagedFocus(
+                focused,
+                in: workspaceId,
+                activateWorkspaceOnMonitor: false
+            )
+        )
+        controller.hasStartedServices = true
+        controller.layoutRefreshController.layoutState.activeRefresh = nil
+
+        let handler = controller.axEventHandler
+        handler.retireManagedWindowFromAuthoritativeRescan(
+            try XCTUnwrap(controller.workspaceManager.entry(for: other))
+        )
+        handler.retireManagedWindowFromAuthoritativeRescan(
+            try XCTUnwrap(controller.workspaceManager.entry(for: focused))
+        )
+
+        let layoutState = controller.layoutRefreshController.layoutState
+        let payloads = (layoutState.activeRefresh?.windowRemovalPayloads ?? [])
+            + (layoutState.pendingRefresh?.windowRemovalPayloads ?? [])
+        XCTAssertEqual(payloads.map(\.shouldRecoverFocus), [false, true])
+    }
+
+    func testRescanRetirementRecoversFocusAfterAppReportedNoFocusedWindow() throws {
+        let controller = WindowAdmissionTestSupport.controller()
+        let workspaceId = try XCTUnwrap(
+            controller.workspaceManager.workspaceId(for: "1", createIfMissing: true)
+        )
+        let token = controller.workspaceManager.addWindow(
+            AXWindowRef(element: AXUIElementCreateApplication(913_008), windowId: 913_108),
+            pid: 913_008,
+            windowId: 913_108,
+            to: workspaceId
+        )
+        XCTAssertTrue(
+            controller.workspaceManager.confirmManagedFocus(
+                token,
+                in: workspaceId,
+                activateWorkspaceOnMonitor: false
+            )
+        )
+        controller.hasStartedServices = true
+        controller.axEventHandler.handleActivationFactsResolved(
+            ActivationFacts(
+                pid: token.pid,
+                source: .focusedWindowChanged,
+                origin: .external,
+                observationGeneration: 0,
+                requestedAtSeq: UInt64.max,
+                focusedWindow: nil
+            )
+        )
+        XCTAssertEqual(
+            controller.workspaceManager.nativeFocusOwner,
+            .external(pid: token.pid, windowId: nil)
+        )
+        controller.layoutRefreshController.layoutState.activeRefresh = nil
+
+        controller.axEventHandler.retireManagedWindowFromAuthoritativeRescan(
+            try XCTUnwrap(controller.workspaceManager.entry(for: token))
+        )
+
+        let layoutState = controller.layoutRefreshController.layoutState
+        let payloads = (layoutState.activeRefresh?.windowRemovalPayloads ?? [])
+            + (layoutState.pendingRefresh?.windowRemovalPayloads ?? [])
+        XCTAssertEqual(payloads.map(\.shouldRecoverFocus), [true])
+        XCTAssertFalse(controller.shouldSuppressManagedFocusRecovery)
+    }
+
     func testFrontmostAppLosingItsFocusedWindowRescansThatApp() throws {
         let controller = WindowAdmissionTestSupport.controller()
         let workspaceId = try XCTUnwrap(

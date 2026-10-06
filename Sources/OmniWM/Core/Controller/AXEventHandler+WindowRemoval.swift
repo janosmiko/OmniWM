@@ -164,7 +164,7 @@ extension AXEventHandler {
         requestTargetedFullRescan(for: [token.pid])
     }
 
-    private func prepareManagedWindowRemoval(
+    func prepareManagedWindowRemoval(
         _ entry: WindowState
     ) -> (shouldRecoverFocus: Bool, closeRecoveryArmed: Bool) {
         guard let controller else { return (false, false) }
