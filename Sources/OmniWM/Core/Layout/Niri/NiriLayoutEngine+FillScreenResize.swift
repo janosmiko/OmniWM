@@ -4,6 +4,8 @@
 import CoreGraphics
 
 extension NiriLayoutEngine {
+    typealias FilledColumns = [(column: NiriContainer, proportion: CGFloat)]
+
     /// Returns false when no other column is fully visible, so the caller resizes the column alone.
     func applyFillScreenWidth(
         _ column: NiriContainer,
@@ -11,12 +13,128 @@ extension NiriLayoutEngine {
         context: NiriInteractionContext,
         state: inout ViewportState
     ) -> Bool {
-        // Always-center mode moves the view on every resize, so a filled screen cannot stay filled.
-        // Hidden columns still hold a slot in columns(in:), so their width would count as visible.
-        guard context.orientation == .horizontal,
-              effectiveSettings(in: context.workspaceId).centerFocusedColumn != .always,
-              projectionExclusions(in: context.workspaceId).isEmpty
+        guard canFillScreen(context) else { return false }
+        resolveFillScreenSpans(context)
+        let columns = columns(in: context.workspaceId)
+        guard let activeIndex = columns.firstIndex(where: { $0 === column }) else { return false }
+        let visible = fullyVisibleColumnIndices(columns: columns, state: state, context: context)
+        let neighbors = visible.filter { $0 != activeIndex }.map { columns[$0] }
+        guard visible.contains(activeIndex), !neighbors.isEmpty else { return false }
+
+        for neighbor in neighbors {
+            beginManualPrimarySpanResize(neighbor, in: context.workspaceId, orientation: .horizontal)
+        }
+        guard let split = NiriFillScreenSplit(
+            focused: widthProportion(column.isFullWidth ? .proportion(1) : column.width, context: context),
+            target: widthProportion(newWidth, context: context),
+            others: neighbors.map { widthProportion($0.width, context: context) },
+            minimum: NiriFillScreenSplit.minimumProportion
+        ) else { return false }
+
+        applyFillScreenSplit(
+            Array(zip(neighbors, split.others)),
+            focused: column,
+            filledSpan: neighbors.reduce(column.settledWidth) { $0 + $1.settledWidth },
+            context: context,
+            state: &state
+        )
+        return true
+    }
+
+    /// Returns the fully visible columns when they fill the screen from edge to edge.
+    func filledVisibleColumns(context: NiriInteractionContext, state: ViewportState) -> FilledColumns? {
+        guard canFillScreen(context) else { return nil }
+        resolveFillScreenSpans(context)
+        let columns = columns(in: context.workspaceId)
+        let visible = fullyVisibleColumnIndices(columns: columns, state: state, context: context).map { columns[$0] }
+        let usedSpan = visible.reduce(context.gaps) { $0 + $1.settledWidth + context.gaps }
+        guard !visible.isEmpty, abs(usedSpan - context.workingFrame.width) <= 1 else { return nil }
+        return visible.map { ($0, widthProportion(.fixed($0.settledWidth), context: context)) }
+    }
+
+    /// Shrinks the columns that filled the screen evenly so that the new column fits next to them.
+    @discardableResult
+    func fillScreenAfterInsert(
+        _ column: NiriContainer,
+        filledBefore: FilledColumns,
+        context: NiriInteractionContext,
+        state: inout ViewportState
+    ) -> Bool {
+        let columns = columns(in: context.workspaceId)
+        let index = { (target: NiriContainer) in columns.firstIndex { $0 === target } }
+        guard canFillScreen(context),
+              let newIndex = index(column),
+              let firstIndex = filledBefore.first.flatMap({ index($0.column) }),
+              let lastIndex = filledBefore.last.flatMap({ index($0.column) }),
+              newIndex > firstIndex, newIndex <= lastIndex + 1,
+              let split = NiriFillScreenSplit(
+                  focused: 0,
+                  target: widthProportion(.fixed(column.settledWidth), context: context),
+                  others: filledBefore.map(\.proportion),
+                  minimum: NiriFillScreenSplit.minimumProportion
+              )
         else { return false }
+
+        keepManualWidths([column] + filledBefore.map(\.column), context: context)
+        applyFillScreenSplit(
+            Array(zip(filledBefore.map(\.column), split.others)),
+            focused: column,
+            filledSpan: filledSpan(columnCount: filledBefore.count + 1, context: context),
+            context: context,
+            state: &state
+        )
+        return true
+    }
+
+    /// Remembers the columns that fill the screen, so that a later pass can refill it when one of them goes away.
+    func recordFilledColumns(context: NiriInteractionContext, state: ViewportState) {
+        ensureState(for: context.workspaceId).filledColumns = filledVisibleColumns(context: context, state: state)?
+            .map { ($0.column.id, $0.proportion) } ?? []
+    }
+
+    func forgetFilledColumns(in workspaceId: WorkspaceDescriptor.ID) {
+        states[workspaceId]?.filledColumns = []
+    }
+
+    /// Gives the width of recorded columns that are gone evenly to the recorded columns that remain.
+    @discardableResult
+    func fillScreenAfterRemoval(context: NiriInteractionContext, state: inout ViewportState) -> Bool {
+        let recorded = ensureState(for: context.workspaceId).filledColumns
+        guard canFillScreen(context), !recorded.isEmpty else { return false }
+        // A window that closes outside a layout pass leaves every column width unresolved.
+        resolveFillScreenSpans(context)
+        let columns = columns(in: context.workspaceId)
+        let survivors: FilledColumns = recorded.compactMap { entry in
+            columns.first { $0.id == entry.id }.map { ($0, entry.proportion) }
+        }
+        let freed = recorded.filter { entry in !columns.contains { $0.id == entry.id } }
+        guard !freed.isEmpty, !survivors.isEmpty,
+              singleWindowLayoutContext(in: context.workspaceId) == nil,
+              columns.indices.contains(state.activeColumnIndex),
+              let focused = survivors.first(where: { $0.column === columns[state.activeColumnIndex] })?.column
+        else { return false }
+
+        let share = freed.reduce(0) { $0 + $1.proportion } / CGFloat(survivors.count)
+        keepManualWidths(survivors.map(\.column), context: context)
+        applyFillScreenSplit(
+            survivors.filter { $0.column !== focused }.map { ($0.column, $0.proportion + share) },
+            focused: focused,
+            filledSpan: filledSpan(columnCount: survivors.count, context: context),
+            context: context,
+            state: &state
+        )
+        return true
+    }
+
+    // Always-center mode moves the view on every resize, so a filled screen cannot stay filled.
+    // Hidden columns still hold a slot in columns(in:), so their width would count as visible.
+    private func canFillScreen(_ context: NiriInteractionContext) -> Bool {
+        context.orientation == .horizontal
+            && effectiveSettings(in: context.workspaceId).centerFocusedColumn != .always
+            && projectionExclusions(in: context.workspaceId).isEmpty
+    }
+
+    private func resolveFillScreenSpans(_ context: NiriInteractionContext) {
         resolvePrimaryContainerSpans(
             in: context.workspaceId,
             workingFrame: context.workingFrame,
@@ -24,41 +142,30 @@ extension NiriLayoutEngine {
             orientation: context.orientation,
             motion: context.motion
         )
-        let columns = columns(in: context.workspaceId)
-        guard let activeIndex = columns.firstIndex(where: { $0 === column }) else { return false }
-        let visible = fullyVisibleColumnIndices(columns: columns, state: state, context: context)
-        let neighbors = visible.filter { $0 != activeIndex }
-        guard visible.contains(activeIndex), !neighbors.isEmpty else { return false }
+    }
 
-        for index in neighbors {
-            beginManualPrimarySpanResize(columns[index], in: context.workspaceId, orientation: .horizontal)
+    // Auto-fit drops manual widths when the column count changes, so the new count must count as manual.
+    private func keepManualWidths(_ columns: [NiriContainer], context: NiriInteractionContext) {
+        for column in columns {
+            beginManualPrimarySpanResize(column, in: context.workspaceId, orientation: .horizontal)
         }
-        guard let split = NiriFillScreenSplit(
-            focused: widthProportion(column.isFullWidth ? .proportion(1) : column.width, context: context),
-            target: widthProportion(newWidth, context: context),
-            others: neighbors.map { widthProportion(columns[$0].width, context: context) },
-            minimum: NiriFillScreenSplit.minimumProportion
-        ) else { return false }
+        ensureState(for: context.workspaceId).manualWidthColumnCount = projectedColumns(in: context.workspaceId).count
+    }
 
-        applyFillScreenSplit(
-            Array(zip(neighbors.map { columns[$0] }, split.others)),
-            leadingCount: neighbors.count(where: { $0 < activeIndex }),
-            focused: column,
-            context: context,
-            state: &state
-        )
-        return true
+    private func filledSpan(columnCount: Int, context: NiriInteractionContext) -> CGFloat {
+        context.workingFrame.width - context.gaps * CGFloat(columnCount + 1)
     }
 
     private func applyFillScreenSplit(
         _ split: [(neighbor: NiriContainer, proportion: CGFloat)],
-        leadingCount: Int,
         focused column: NiriContainer,
+        filledSpan: CGFloat,
         context: NiriInteractionContext,
         state: inout ViewportState
     ) {
         let neighbors = split.map(\.neighbor)
-        let filledSpan = neighbors.reduce(column.settledWidth) { $0 + $1.settledWidth }
+        // applyColumnWidth makes each resized column active, but the caller owns the focus.
+        let activeIndex = state.activeColumnIndex
         for (neighbor, proportion) in split {
             applyColumnWidth(
                 neighbor,
@@ -79,10 +186,18 @@ extension NiriLayoutEngine {
             state: &state,
             recoversSettledCoverage: false
         )
-        // Keep the first visible column at the left edge while widths to the left of the focus change.
-        let leadingSpan = neighbors.prefix(leadingCount).reduce(0) { $0 + $1.settledWidth + context.gaps }
+        // Keep the first filled column at the left edge while the widths before the active column change.
+        let columns = columns(in: context.workspaceId)
+        let firstIndex = columns.firstIndex { candidate in
+            candidate === column || neighbors.contains { $0 === candidate }
+        } ?? state.activeColumnIndex
+        state.activeColumnIndex = activeIndex.clamped(to: 0 ... max(0, columns.count - 1))
+        let current = state
+        let position = { (index: Int) in
+            current.containerPosition(at: index, containers: columns, gap: context.gaps, sizeKeyPath: \.settledWidth)
+        }
         state.animateToOffset(
-            -(leadingSpan + context.gaps),
+            position(firstIndex) - position(state.activeColumnIndex) - context.gaps,
             motion: context.motion,
             scale: displayScale(in: context.workspaceId)
         )
