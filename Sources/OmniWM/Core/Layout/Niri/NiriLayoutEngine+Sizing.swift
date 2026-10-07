@@ -38,7 +38,7 @@ extension NiriLayoutEngine {
         column.isTabbed ? renderStyle.tabIndicatorWidth : 0
     }
 
-    private func applyColumnWidth(
+    func applyColumnWidth(
         _ column: NiriContainer,
         width newWidth: ProportionalSize,
         presetIndex: Int?,
@@ -305,7 +305,8 @@ extension NiriLayoutEngine {
         _ column: NiriContainer,
         change: NiriSizeChange,
         context: NiriInteractionContext,
-        state: inout ViewportState
+        state: inout ViewportState,
+        fillsScreen: Bool = false
     ) {
         assertSanctionedMutation()
         beginManualPrimarySpanResize(column, in: context.workspaceId, orientation: context.orientation)
@@ -344,6 +345,9 @@ extension NiriLayoutEngine {
             gaps: context.gaps
         )
 
+        if fillsScreen, applyFillScreenWidth(column, width: newWidth, context: context, state: &state) {
+            return
+        }
         applyColumnWidth(
             column,
             width: newWidth,

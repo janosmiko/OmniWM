@@ -84,7 +84,8 @@ extension NiriLayoutEngine {
         _ window: NiriWindow,
         change: NiriSizeChange,
         context: NiriInteractionContext,
-        state: inout ViewportState
+        state: inout ViewportState,
+        fillsScreen: Bool = false
     ) {
         assertSanctionedMutation()
         guard let column = findColumn(containing: window, in: context.workspaceId) else { return }
@@ -92,7 +93,8 @@ extension NiriLayoutEngine {
             column,
             change: change,
             context: context,
-            state: &state
+            state: &state,
+            fillsScreen: fillsScreen
         )
     }
 

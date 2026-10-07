@@ -66,6 +66,10 @@ final class NiriSettings {
         didSet { onChange?() }
     }
 
+    var fillScreenOnResize = NiriSettings.defaults.fillScreenOnResize ?? false {
+        didSet { onChange?() }
+    }
+
     var monitorOverrides: [MonitorNiriSettings] = [] {
         didSet { onChange?() }
     }
@@ -80,7 +84,8 @@ final class NiriSettings {
             containerPrimarySpanPresets: containerPrimarySpanPresets,
             defaultContainerPrimarySpan: defaultContainerPrimarySpan,
             edgeGaps: edgeGaps,
-            resizeStepPercent: resizeStepPercent
+            resizeStepPercent: resizeStepPercent,
+            fillScreenOnResize: fillScreenOnResize
         )
     }
 
@@ -91,6 +96,7 @@ final class NiriSettings {
         alwaysCenterSingleColumn = niri.alwaysCenterSingleColumn
         singleWindowFit = niri.singleWindowFit
         edgeGaps = niri.edgeGaps ?? baseline.edgeGaps ?? true
+        fillScreenOnResize = niri.fillScreenOnResize ?? baseline.fillScreenOnResize ?? false
         resizeStepPercent = niri.resizeStepPercent ?? baseline.resizeStepPercent ?? BuiltInSettingsDefaults
             .niriResizeStepPercent
         containerPrimarySpanPresets = NiriSettings.validatedContainerPrimarySpanPresets(

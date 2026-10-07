@@ -116,6 +116,8 @@ private struct GlobalNiriSettingsSection: View {
                     controller.updateMonitorGapSettings()
                 }
 
+            Toggle("Resize Keeps Screen Filled", isOn: Bindable(settings.niri).fillScreenOnResize)
+
             SingleWindowFitControls(
                 label: String(localized: "Single Window"),
                 fit: settings.niri.singleWindowFit,
