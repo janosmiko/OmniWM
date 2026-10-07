@@ -168,7 +168,7 @@ Options for the scrolling (Niri) layout.
 | `moveWindowStacksIntoColumn` *(optional)* | boolean | `true` | Moving a lone window left or right stacks it into the adjacent column. `false` swaps its column with the adjacent one instead. A window that shares a column still moves out into its own column. |
 | `accordionPadding` *(optional)* | float | `30` | Size in points of the strip that each neighbor window shows beside the active column. `0` to `200`. |
 | `accordionAxis` *(optional)* | string | `"horizontal"` | Direction of the strips: `horizontal` or `vertical`. |
-| `fillScreenOnResize` *(optional)* | boolean | `false` | Container and window primary resizes take or give the width to the other fully visible columns, so the screen stays filled. Horizontal orientation only. |
+| `fillScreenOnResize` *(optional)* | boolean | `false` | Resizes, new columns, and removed columns take or give width evenly to the other fully visible columns, so the screen stays filled. Horizontal orientation only. |
 
 The resize increment defaults to 5% instead of the previous fixed 10%.
 
