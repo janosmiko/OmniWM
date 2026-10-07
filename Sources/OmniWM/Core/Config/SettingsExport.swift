@@ -117,6 +117,7 @@ struct SettingsExport: Equatable {
         var overscrollVisibleStripPercent: Int?
         var accordionPadding: Double?
         var accordionAxis: AccordionAxis?
+        var fillScreenOnResize: Bool?
     }
 
     struct Dwindle: Codable, Equatable {

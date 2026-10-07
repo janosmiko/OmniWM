@@ -51,7 +51,7 @@ extension NiriLayoutEngine {
         return columnIndex(of: column, in: workspaceId) == state.activeColumnIndex
     }
 
-    private func applyColumnWidth(
+    func applyColumnWidth(
         _ column: NiriContainer,
         width newWidth: ProportionalSize,
         presetIndex: Int?,
@@ -317,7 +317,8 @@ extension NiriLayoutEngine {
         _ column: NiriContainer,
         change: NiriSizeChange,
         context: NiriInteractionContext,
-        state: inout ViewportState
+        state: inout ViewportState,
+        fillsScreen: Bool = false
     ) {
         assertSanctionedMutation()
         beginManualPrimarySpanResize(column, in: context.workspaceId, orientation: context.orientation)
@@ -352,6 +353,9 @@ extension NiriLayoutEngine {
             axisSpan: axisSpan,
             gaps: context.gaps
         )
+        if fillsScreen, applyFillScreenWidth(column, width: newSpan, context: context, state: &state) {
+            return
+        }
         if horizontal {
             applyColumnWidth(column, width: newSpan, presetIndex: nil, context: context, state: &state)
         } else {

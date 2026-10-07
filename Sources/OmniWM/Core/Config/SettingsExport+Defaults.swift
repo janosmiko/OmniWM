@@ -126,7 +126,8 @@ extension SettingsExport.Niri {
             allowOverscroll: false,
             overscrollVisibleStripPercent: 5,
             accordionPadding: 30,
-            accordionAxis: .horizontal
+            accordionAxis: .horizontal,
+            fillScreenOnResize: false
         )
     }
 }

@@ -101,6 +101,10 @@ final class NiriSettings {
         didSet { onChange?() }
     }
 
+    var fillScreenOnResize = NiriSettings.defaults.fillScreenOnResize ?? false {
+        didSet { onChange?() }
+    }
+
     var monitorOverrides: [MonitorNiriSettings] = [] {
         didSet { onChange?() }
     }
@@ -120,7 +124,8 @@ final class NiriSettings {
             allowOverscroll: allowOverscroll,
             overscrollVisibleStripPercent: overscrollVisibleStripPercent,
             accordionPadding: accordionPadding,
-            accordionAxis: accordionAxis
+            accordionAxis: accordionAxis,
+            fillScreenOnResize: fillScreenOnResize
         )
     }
 
@@ -135,6 +140,7 @@ final class NiriSettings {
             ?? baseline.overscrollVisibleStripPercent ?? 5
         edgeGaps = niri.edgeGaps ?? baseline.edgeGaps ?? true
         moveWindowStacksIntoColumn = niri.moveWindowStacksIntoColumn ?? baseline.moveWindowStacksIntoColumn ?? true
+        fillScreenOnResize = niri.fillScreenOnResize ?? baseline.fillScreenOnResize ?? false
         resizeStepPercent = niri.resizeStepPercent ?? baseline.resizeStepPercent ?? BuiltInSettingsDefaults
             .niriResizeStepPercent
         containerPrimarySpanPresets = NiriSettings.validatedContainerPrimarySpanPresets(

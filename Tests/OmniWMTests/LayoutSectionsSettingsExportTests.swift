@@ -31,7 +31,8 @@ final class LayoutSectionsSettingsExportTests: XCTestCase {
             "allowOverscroll": .boolean(false),
             "overscrollVisibleStripPercent": .integer(5),
             "accordionPadding": .float(30),
-            "accordionAxis": .string("horizontal")
+            "accordionAxis": .string("horizontal"),
+            "fillScreenOnResize": .boolean(false)
         ]))
         XCTAssertEqual(tree["dwindle"], .table([
             "smartSplit": .boolean(false),
