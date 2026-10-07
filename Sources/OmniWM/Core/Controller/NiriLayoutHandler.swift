@@ -91,6 +91,7 @@ enum StructuralMutationOutcome: Equatable {
         var newTokens: [WindowToken]
         var tabLocalTokens: Set<WindowToken>
         var viewOriginBeforeInsertion: CGFloat?
+        var fillScreenInsert: (column: NiriContainer, filledBefore: NiriLayoutEngine.FilledColumns)?
     }
 
     struct ArrivalContext {

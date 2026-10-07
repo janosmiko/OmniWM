@@ -164,7 +164,7 @@ Options for the scrolling (Niri) layout.
 | `defaultContainerPrimarySpan` *(optional)* | float | `0.5` | Primary-axis span fraction for new containers. |
 | `resizeStepPercent` *(optional)* | integer | `5` | Increment for Niri grow/shrink actions in percentage points, clamped to 1–100. Applies to container primary, window primary, and window secondary spans. Explicit CLI sizes are unaffected. |
 | `edgeGaps` *(optional)* | boolean | `true` | Keeps the inner gap between columns and the screen edges, in addition to the outer gaps. `false` uses the inner gap only between columns and between stacked windows. A lone window is unaffected. |
-| `fillScreenOnResize` *(optional)* | boolean | `false` | Container and window primary resizes take or give the width to the other fully visible columns, so the screen stays filled. Horizontal orientation only. |
+| `fillScreenOnResize` *(optional)* | boolean | `false` | Resizes, new columns, and removed columns take or give width evenly to the other fully visible columns, so the screen stays filled. Horizontal orientation only. |
 
 The resize increment defaults to 5% instead of the previous fixed 10%.
 

@@ -101,6 +101,7 @@ final class NiriWorkspaceState {
     var attachedMonitorId: Monitor.ID?
     var manualWidthColumnCount: Int?
     var manualHeightColumnCount: Int?
+    var filledColumns: [(id: NodeId, proportion: CGFloat)] = []
 
     init(workspaceId: WorkspaceDescriptor.ID) {
         root = NiriRoot(workspaceId: workspaceId)

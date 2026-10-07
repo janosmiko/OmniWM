@@ -200,6 +200,7 @@ extension NiriLayoutHandler {
             existingHandleIds: removal.existingHandleIds,
             snapshot: snapshot
         )
+        keepScreenFilled(pass: pass, state: &state, insertion: insertion)
 
         var plan = computeLayoutPlan(
             pass: pass,
@@ -266,6 +267,7 @@ extension NiriLayoutHandler {
         viewOriginBeforeInsertion: CGFloat?
     ) -> InsertionContext {
         let currentSelection = state.selectedNodeId
+        let filledBefore = filledColumnsBeforeInsertion(pass: pass, state: state, removal: removal)
         syncWindowsAndInstallConstraints(
             pass: pass,
             selectedNodeId: currentSelection,
@@ -276,6 +278,7 @@ extension NiriLayoutHandler {
             !pass.engine.isExcludedFromProjection($0, in: pass.wsId)
         }
         var tabLocalTokens = Set<WindowToken>()
+        var fillScreenInsert: (column: NiriContainer, filledBefore: NiriLayoutEngine.FilledColumns)?
 
         let columns = pass.engine.columns(in: pass.wsId)
         resolvePrimaryContainerSpansIfNeeded(pass: pass)
@@ -297,6 +300,9 @@ extension NiriLayoutHandler {
                 state.rebaseOffset(by: -totalInsertedSpan)
                 state.activeColumnIndex = originalActiveIdx + insertedBeforeActive.count
             }
+            if let filledBefore, newColumnData.count == 1 {
+                fillScreenInsert = (newColumnData[0].col, filledBefore)
+            }
 
             let sortedNewColumns = newColumnData.sorted { $0.colIdx < $1.colIdx }
             for addedData in sortedNewColumns {
@@ -311,8 +317,43 @@ extension NiriLayoutHandler {
         return InsertionContext(
             newTokens: visibleNewTokens,
             tabLocalTokens: tabLocalTokens,
-            viewOriginBeforeInsertion: viewOriginBeforeInsertion
+            viewOriginBeforeInsertion: viewOriginBeforeInsertion,
+            fillScreenInsert: fillScreenInsert
         )
+    }
+
+    private var fillsScreen: Bool {
+        controller?.settings.niri.fillScreenOnResize ?? false
+    }
+
+    private func filledColumnsBeforeInsertion(
+        pass: NiriLayoutPass,
+        state: ViewportState,
+        removal: RemovalContext
+    ) -> NiriLayoutEngine.FilledColumns? {
+        guard fillsScreen, !removal.removedColumn,
+              pass.windowTokens.contains(where: { !removal.existingHandleIds.contains($0) })
+        else { return nil }
+        return pass.engine.filledVisibleColumns(context: pass.interactionContext, state: state)
+    }
+
+    // Runs after the arrival scroll, because that scroll measures columns at their old animated widths.
+    private func keepScreenFilled(pass: NiriLayoutPass, state: inout ViewportState, insertion: InsertionContext) {
+        guard fillsScreen else {
+            pass.engine.forgetFilledColumns(in: pass.wsId)
+            return
+        }
+        let context = pass.interactionContext
+        let refilledAfterRemoval = pass.engine.fillScreenAfterRemoval(context: context, state: &state)
+        if !refilledAfterRemoval, let fill = insertion.fillScreenInsert {
+            pass.engine.fillScreenAfterInsert(
+                fill.column,
+                filledBefore: fill.filledBefore,
+                context: context,
+                state: &state
+            )
+        }
+        pass.engine.recordFilledColumns(context: context, state: state)
     }
 
     private func makeLayoutPass(
