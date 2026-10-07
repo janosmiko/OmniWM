@@ -29,7 +29,8 @@ final class LayoutSectionsSettingsExportTests: XCTestCase {
             "resizeStepPercent": .integer(5),
             "moveWindowStacksIntoColumn": .boolean(true),
             "accordionPadding": .float(30),
-            "accordionAxis": .string("horizontal")
+            "accordionAxis": .string("horizontal"),
+            "fillScreenOnResize": .boolean(false)
         ]))
         XCTAssertEqual(tree["dwindle"], .table([
             "smartSplit": .boolean(false),

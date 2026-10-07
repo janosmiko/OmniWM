@@ -119,7 +119,13 @@ extension NiriLayoutHandler {
     func setContainerPrimarySpan(_ change: NiriSizeChange, target: WindowTarget = .focused) -> Bool {
         performWindowSizing(on: target) { engine, windowNode, context, state in
             guard let column = engine.findColumn(containing: windowNode, in: context.workspaceId) else { return nil }
-            engine.setContainerPrimarySpan(column, change: change, context: context, state: &state)
+            engine.setContainerPrimarySpan(
+                column,
+                change: change,
+                context: context,
+                state: &state,
+                fillsScreen: controller?.settings.niri.fillScreenOnResize ?? false
+            )
             return .containerPrimarySpanChanged
         }
     }
@@ -127,7 +133,13 @@ extension NiriLayoutHandler {
     @discardableResult
     func setWindowPrimarySpan(_ change: NiriSizeChange, target: WindowTarget = .focused) -> Bool {
         performWindowSizing(on: target) { engine, windowNode, context, state in
-            engine.setWindowPrimarySpan(windowNode, change: change, context: context, state: &state)
+            engine.setWindowPrimarySpan(
+                windowNode,
+                change: change,
+                context: context,
+                state: &state,
+                fillsScreen: controller?.settings.niri.fillScreenOnResize ?? false
+            )
             return .windowSizeChanged(token: windowNode.token)
         }
     }

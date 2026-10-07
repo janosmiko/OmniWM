@@ -115,6 +115,7 @@ struct SettingsExport: Equatable {
         var moveWindowStacksIntoColumn: Bool?
         var accordionPadding: Double?
         var accordionAxis: AccordionAxis?
+        var fillScreenOnResize: Bool?
     }
 
     struct Dwindle: Codable, Equatable {
@@ -375,7 +376,8 @@ extension SettingsExport.Niri {
             resizeStepPercent: BuiltInSettingsDefaults.niriResizeStepPercent,
             moveWindowStacksIntoColumn: true,
             accordionPadding: 30,
-            accordionAxis: .horizontal
+            accordionAxis: .horizontal,
+            fillScreenOnResize: false
         )
     }
 }

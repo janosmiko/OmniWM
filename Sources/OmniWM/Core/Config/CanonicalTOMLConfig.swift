@@ -85,6 +85,7 @@ extension CanonicalTOMLConfig {
         niri.moveWindowStacksIntoColumn = niri.moveWindowStacksIntoColumn ?? true
         niri.accordionPadding = niri.accordionPadding ?? 30
         niri.accordionAxis = niri.accordionAxis ?? .horizontal
+        niri.fillScreenOnResize = niri.fillScreenOnResize ?? false
         dwindle = try container.decode(SettingsExport.Dwindle.self, forKey: .dwindle)
         borders = try container.decode(SettingsExport.Borders.self, forKey: .borders)
         overview = try container.decode(SettingsExport.Overview.self, forKey: .overview)

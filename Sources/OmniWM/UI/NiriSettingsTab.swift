@@ -141,6 +141,8 @@ private struct GlobalNiriSettingsSection: View {
                 isOn: Bindable(settings.niri).moveWindowStacksIntoColumn
             )
             .id("Stack Moved Window Into Adjacent Column")
+            Toggle("Resize Keeps Screen Filled", isOn: Bindable(settings.niri).fillScreenOnResize)
+                .id("Resize Keeps Screen Filled")
 
             SingleWindowFitControls(
                 label: String(localized: "Single Window"),
