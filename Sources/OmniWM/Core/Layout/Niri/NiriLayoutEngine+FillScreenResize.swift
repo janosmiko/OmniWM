@@ -110,14 +110,17 @@ extension NiriLayoutEngine {
         let indices = (filledBefore.map(\.column) + expelled)
             .compactMap { target in columns.firstIndex { $0 === target } }
             .sorted()
-        guard canFillScreen(context), !expelled.isEmpty, !filledBefore.isEmpty,
-              filledBefore.count == recorded.count,
+        guard canFillScreen(context), !expelled.isEmpty, !recorded.isEmpty,
               let firstIndex = indices.first, indices == Array(firstIndex ..< firstIndex + indices.count)
         else { return false }
 
         let count = CGFloat(indices.count)
         let total = filledBefore.reduce(0) { $0 + $1.proportion }
-        let split = filledBefore.map { ($0.column, $0.proportion * CGFloat(filledBefore.count) / count) }
+        let freed = recorded.reduce(0) { $0 + $1.proportion } - total
+        // A moved column whose source column closed takes over the freed width instead of sharing the screen.
+        let split = freed > 0
+            ? filledBefore.map { ($0.column, $0.proportion) } + expelled.map { ($0, freed / CGFloat(expelled.count)) }
+            : filledBefore.map { ($0.column, $0.proportion * CGFloat(filledBefore.count) / count) }
             + expelled.map { ($0, total / count) }
         let active = columns.indices.contains(state.activeColumnIndex) ? columns[state.activeColumnIndex] : nil
         let focused = split.first { $0.0 === active }?.0 ?? expelled[expelled.count - 1]

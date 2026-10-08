@@ -220,10 +220,64 @@ final class NiriFillScreenStructureTests: XCTestCase {
             ))
         }
 
-        XCTAssertFalse(fixture.engine.fillScreenAfterRemoval(context: context(fixture), state: &fixture.state))
-        XCTAssertFalse(fillScreenAfterExpel(&fixture))
+        XCTAssertTrue(fillScreenAfterExpel(&fixture))
         assertProportions(fixture, [0.5, 0.5])
         XCTAssertTrue(fixture.columns.first?.windowNodes.first === moved)
+    }
+
+    func testWindowInsertedInNewColumnSplitsFilledScreen() throws {
+        var fixture = makeFixture([0.5, 0.5])
+        let moved = try XCTUnwrap(fixture.engine.findNode(
+            for: WindowToken(pid: 1, windowId: 2),
+            in: fixture.workspaceId
+        ))
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+        XCTAssertTrue(fixture.engine.consumeOrExpelWindow(
+            moved, direction: .left, context: context(fixture), state: &fixture.state
+        ))
+        XCTAssertTrue(fixture.engine.fillScreenAfterRemoval(context: context(fixture), state: &fixture.state))
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+
+        XCTAssertTrue(fixture.engine.insertWindowInNewColumn(
+            moved, insertIndex: 1, context: context(fixture), state: &fixture.state, sizingPolicy: .inheritSource
+        ))
+        XCTAssertTrue(fillScreenAfterExpel(&fixture))
+
+        assertProportions(fixture, [0.5, 0.5])
+        XCTAssertTrue(fixture.columns.last?.windowNodes.first === moved)
+    }
+
+    func testMovedSingleWindowColumnTakesOverItsFilledWidth() throws {
+        var fixture = makeFixture([0.3, 0.7])
+        let moved = try XCTUnwrap(fixture.engine.findNode(
+            for: WindowToken(pid: 1, windowId: 1),
+            in: fixture.workspaceId
+        ))
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+
+        XCTAssertTrue(fixture.engine.insertWindowInNewColumn(
+            moved, insertIndex: 2, context: context(fixture), state: &fixture.state
+        ))
+        XCTAssertTrue(fillScreenAfterExpel(&fixture))
+
+        assertProportions(fixture, [0.7, 0.3])
+        XCTAssertTrue(fixture.columns.last?.windowNodes.first === moved)
+    }
+
+    func testMovedSoleColumnKeepsFullWidth() throws {
+        var fixture = makeFixture([1.0])
+        let moved = try XCTUnwrap(fixture.engine.findNode(
+            for: WindowToken(pid: 1, windowId: 1),
+            in: fixture.workspaceId
+        ))
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+
+        XCTAssertTrue(fixture.engine.insertWindowInNewColumn(
+            moved, insertIndex: 0, context: context(fixture), state: &fixture.state
+        ))
+        XCTAssertTrue(fillScreenAfterExpel(&fixture))
+
+        assertProportions(fixture, [1.0])
     }
 
     func testFillScreenAfterExpelWithoutExpelKeepsWidths() {
