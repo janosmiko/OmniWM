@@ -102,6 +102,7 @@ final class NiriWorkspaceState {
     var manualWidthColumnCount: Int?
     var manualHeightColumnCount: Int?
     var filledColumns: [(id: NodeId, proportion: CGFloat)] = []
+    var expelledColumnIds: [NodeId] = []
 
     init(workspaceId: WorkspaceDescriptor.ID) {
         root = NiriRoot(workspaceId: workspaceId)
