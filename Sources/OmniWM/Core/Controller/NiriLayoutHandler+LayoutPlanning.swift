@@ -356,6 +356,9 @@ extension NiriLayoutHandler {
                 state: &state
             )
         }
+        if controller?.workspaceManager.animationDriver.gestureSessionID(in: pass.wsId) == nil {
+            pass.engine.fillScreenWithAllColumns(context: context, state: &state)
+        }
         pass.engine.recordFilledColumns(context: context, state: state)
     }
 
