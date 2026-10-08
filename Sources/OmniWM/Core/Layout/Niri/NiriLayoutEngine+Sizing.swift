@@ -200,7 +200,8 @@ extension NiriLayoutEngine {
         _ column: NiriContainer,
         forwards: Bool,
         context: NiriInteractionContext,
-        state: inout ViewportState
+        state: inout ViewportState,
+        fillsScreen: Bool = false
     ) {
         assertSanctionedMutation()
         guard !presetContainerPrimarySpans.isEmpty else { return }
@@ -237,6 +238,10 @@ extension NiriLayoutEngine {
             gaps: context.gaps
         )
 
+        if fillsScreen, applyFillScreenWidth(column, width: newWidth, context: context, state: &state) {
+            column.presetWidthIdx = nextIdx
+            return
+        }
         applyColumnWidth(
             column,
             width: newWidth,

@@ -50,7 +50,8 @@ extension NiriLayoutHandler {
                     gaps: gaps,
                     orientation: orientation
                 ),
-                state: &state
+                state: &state,
+                fillsScreen: controller?.settings.niri.fillScreenOnResize ?? false
             )
             recordLayoutOperation(.containerPrimarySpanChanged, in: wsId)
             requestLayoutCommandRelayout(in: wsId)

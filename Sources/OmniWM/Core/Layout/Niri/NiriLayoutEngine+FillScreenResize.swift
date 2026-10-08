@@ -188,9 +188,15 @@ extension NiriLayoutEngine {
         let columns = columns(in: context.workspaceId)
         // Below the minimum share, the columns cannot all fit, so plain scrolling takes over.
         guard !columns.isEmpty, CGFloat(columns.count) * NiriFillScreenSplit.minimumProportion <= 1,
-              columns.allSatisfy({ $0.effectiveSizingMode == .normal }),
+              columns.allSatisfy({ $0.effectiveSizingMode == .normal && !$0.isFullWidth }),
               columns.indices.contains(state.activeColumnIndex),
               filledVisibleColumns(context: context, state: state)?.count != columns.count
+        else { return false }
+        // Window size limits that cannot fit would make every pass refit and pull the view back.
+        let span = filledSpan(columnCount: columns.count, context: context)
+        let bounds = columns.map { projectedWidthBounds(for: $0, workspaceId: context.workspaceId) }
+        guard bounds.reduce(0, { $0 + $1.min }) <= span,
+              bounds.contains(where: { $0.max == nil }) || bounds.reduce(0, { $0 + ($1.max ?? 0) }) >= span
         else { return false }
 
         let proportions = columns.map { widthProportion(.fixed($0.settledWidth), context: context) }
@@ -201,7 +207,7 @@ extension NiriLayoutEngine {
         applyFillScreenSplit(
             zip(columns, proportions).filter { $0.0 !== focused }.map { ($0.0, $0.1 / total) },
             focused: focused,
-            filledSpan: filledSpan(columnCount: columns.count, context: context),
+            filledSpan: span,
             context: context,
             state: &state
         )
