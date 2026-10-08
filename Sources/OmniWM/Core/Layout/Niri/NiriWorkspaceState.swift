@@ -106,6 +106,7 @@ final class NiriWorkspaceState {
     var isAccordion = false
     var accordionActiveColumnId: NodeId?
     var filledColumns: [(id: NodeId, proportion: CGFloat)] = []
+    var expelledColumnIds: [NodeId] = []
 
     init(workspaceId: WorkspaceDescriptor.ID) {
         root = NiriRoot(workspaceId: workspaceId)

@@ -86,6 +86,52 @@ extension NiriLayoutEngine {
         return true
     }
 
+    /// Returns the columns that expelled windows created since the last call, and forgets them.
+    func takeExpelledColumnIds(in workspaceId: WorkspaceDescriptor.ID) -> [NodeId] {
+        guard let workspaceState = states[workspaceId] else { return [] }
+        defer { workspaceState.expelledColumnIds = [] }
+        return workspaceState.expelledColumnIds
+    }
+
+    /// Gives each expelled column an equal share of the filled screen and shrinks the filled columns in proportion.
+    /// An expelled column copies the width of the column it left, which can be the whole screen.
+    @discardableResult
+    func fillScreenAfterExpel(
+        _ expelledIds: [NodeId],
+        context: NiriInteractionContext,
+        state: inout ViewportState
+    ) -> Bool {
+        let recorded = ensureState(for: context.workspaceId).filledColumns
+        let columns = columns(in: context.workspaceId)
+        let column = { (id: NodeId) in columns.first { $0.id == id } }
+        let filledBefore: FilledColumns = recorded
+            .compactMap { entry in column(entry.id).map { ($0, entry.proportion) } }
+        let expelled = expelledIds.compactMap(column)
+        let indices = (filledBefore.map(\.column) + expelled)
+            .compactMap { target in columns.firstIndex { $0 === target } }
+            .sorted()
+        guard canFillScreen(context), !expelled.isEmpty, !filledBefore.isEmpty,
+              filledBefore.count == recorded.count,
+              let firstIndex = indices.first, indices == Array(firstIndex ..< firstIndex + indices.count)
+        else { return false }
+
+        let count = CGFloat(indices.count)
+        let total = filledBefore.reduce(0) { $0 + $1.proportion }
+        let split = filledBefore.map { ($0.column, $0.proportion * CGFloat(filledBefore.count) / count) }
+            + expelled.map { ($0, total / count) }
+        let active = columns.indices.contains(state.activeColumnIndex) ? columns[state.activeColumnIndex] : nil
+        let focused = split.first { $0.0 === active }?.0 ?? expelled[expelled.count - 1]
+        keepManualWidths(split.map(\.0), context: context)
+        applyFillScreenSplit(
+            split.filter { $0.0 !== focused },
+            focused: focused,
+            filledSpan: filledSpan(columnCount: split.count, context: context),
+            context: context,
+            state: &state
+        )
+        return true
+    }
+
     /// Remembers the columns that fill the screen, so that a later pass can refill it when one of them goes away.
     func recordFilledColumns(context: NiriInteractionContext, state: ViewportState) {
         ensureState(for: context.workspaceId).filledColumns = filledVisibleColumns(context: context, state: state)?
