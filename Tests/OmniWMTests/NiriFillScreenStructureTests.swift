@@ -292,6 +292,42 @@ final class NiriFillScreenStructureTests: XCTestCase {
         assertProportions(fixture, [0.3, 0.7])
     }
 
+    func testMouseShrinkOfLeftEdgeOnlyGrowsLeftNeighbor() throws {
+        var fixture = makeFixture([0.3, 0.3, 0.4])
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+
+        let resize = try mouseResize(column: 1, edges: [.left], by: span(0.3) - span(0.2), in: &fixture)
+
+        XCTAssertTrue(fixture.engine.fillScreenAfterInteractiveResize(
+            resize, context: context(fixture), state: &fixture.state
+        ))
+        assertProportions(fixture, [0.4, 0.2, 0.4])
+    }
+
+    func testMouseGrowOfRightEdgeOnlyShrinksRightNeighbor() throws {
+        var fixture = makeFixture([0.3, 0.3, 0.4])
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+
+        let resize = try mouseResize(column: 1, edges: [.right], by: span(0.4) - span(0.3), in: &fixture)
+
+        XCTAssertTrue(fixture.engine.fillScreenAfterInteractiveResize(
+            resize, context: context(fixture), state: &fixture.state
+        ))
+        assertProportions(fixture, [0.3, 0.4, 0.3])
+    }
+
+    func testMouseResizeOfScreenEdgeSharesWidthWithOtherColumns() throws {
+        var fixture = makeFixture([0.3, 0.3, 0.4])
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+
+        let resize = try mouseResize(column: 0, edges: [.left], by: span(0.3) - span(0.1), in: &fixture)
+
+        XCTAssertTrue(fixture.engine.fillScreenAfterInteractiveResize(
+            resize, context: context(fixture), state: &fixture.state
+        ))
+        assertProportions(fixture, [0.1, 0.4, 0.5])
+    }
+
     func testMouseResizeWithoutFilledScreenKeepsNeighborWidth() throws {
         var fixture = makeFixture([0.5, 0.5])
 
@@ -359,9 +395,18 @@ final class NiriFillScreenStructureTests: XCTestCase {
     }
 
     private func mouseResizeFirstColumn(by delta: CGFloat, in fixture: inout Fixture) throws -> InteractiveResize {
-        let window = try XCTUnwrap(fixture.columns.first?.windowNodes.first)
+        try mouseResize(column: 0, edges: [.right], by: delta, in: &fixture)
+    }
+
+    private func mouseResize(
+        column index: Int,
+        edges: ResizeEdge,
+        by delta: CGFloat,
+        in fixture: inout Fixture
+    ) throws -> InteractiveResize {
+        let window = try XCTUnwrap(fixture.columns[index].windowNodes.first)
         XCTAssertTrue(fixture.engine.interactiveResizeBegin(
-            windowId: window.id, edges: [.right], startLocation: .zero,
+            windowId: window.id, edges: edges, startLocation: .zero,
             in: fixture.workspaceId, orientation: .horizontal
         ))
         XCTAssertTrue(fixture.engine.interactiveResizeUpdate(
