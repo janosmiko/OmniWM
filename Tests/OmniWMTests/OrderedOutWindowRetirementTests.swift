@@ -77,6 +77,47 @@ final class OrderedOutWindowRetirementTests: XCTestCase {
         XCTAssertEqual(refresh.rescanScope, .targeted(appPIDs: [token.pid], nativeSpaceIds: []))
     }
 
+    func testOrderedOutWindowRetiresWhileAnotherAppIsInNativeFullscreen() throws {
+        let (controller, token) = try nativeFullscreenMissingWindowFixture(orderedIn: false)
+
+        retireMissingWindows(of: token, controller: controller)
+        XCTAssertNotNil(controller.workspaceManager.entry(for: token))
+        retireMissingWindows(of: token, controller: controller)
+
+        XCTAssertNil(controller.workspaceManager.entry(for: token))
+    }
+
+    func testOrderedInMissingWindowSurvivesWhileAnotherAppIsInNativeFullscreen() throws {
+        let (controller, token) = try nativeFullscreenMissingWindowFixture(orderedIn: true)
+
+        retireMissingWindows(of: token, controller: controller)
+        retireMissingWindows(of: token, controller: controller)
+
+        XCTAssertNotNil(controller.workspaceManager.entry(for: token))
+    }
+
+    func testOrderedOutWindowWithReusedIdSurvivesWhileAnotherAppIsInNativeFullscreen() throws {
+        let (controller, token) = try nativeFullscreenMissingWindowFixture(orderedIn: false)
+        controller.axEventHandler.windowInfoProvider = {
+            WindowServerInfo(id: $0, pid: token.pid + 1, level: 0, frame: .zero)
+        }
+
+        retireMissingWindows(of: token, controller: controller)
+        retireMissingWindows(of: token, controller: controller)
+
+        XCTAssertNotNil(controller.workspaceManager.entry(for: token))
+    }
+
+    func testUnknownWindowSurvivesWhileAnotherAppIsInNativeFullscreen() throws {
+        let (controller, token) = try nativeFullscreenMissingWindowFixture(orderedIn: false)
+        controller.axEventHandler.windowInfoProvider = { _ in nil }
+
+        retireMissingWindows(of: token, controller: controller)
+        retireMissingWindows(of: token, controller: controller)
+
+        XCTAssertNotNil(controller.workspaceManager.entry(for: token))
+    }
+
     func testRescanRetirementOfFocusedWindowRecoversFocus() throws {
         let controller = WindowAdmissionTestSupport.controller()
         let workspaceId = try XCTUnwrap(
@@ -302,5 +343,56 @@ final class OrderedOutWindowRetirementTests: XCTestCase {
         XCTAssertNil(controller.layoutRefreshController.layoutState.activeRefresh)
         XCTAssertNil(controller.layoutRefreshController.layoutState.pendingRefresh)
         XCTAssertEqual(controller.axEventHandler.previouslyFocusedManagedToken, managedToken)
+    }
+
+    private func nativeFullscreenMissingWindowFixture(
+        orderedIn: Bool
+    ) throws -> (WMController, WindowToken) {
+        let controller = WindowAdmissionTestSupport.controller()
+        let workspaceId = try XCTUnwrap(
+            controller.workspaceManager.workspaceId(for: "1", createIfMissing: true)
+        )
+        let fullscreen = controller.workspaceManager.addWindow(
+            AXWindowRef(element: AXUIElementCreateApplication(913_010), windowId: 913_110),
+            pid: 913_010,
+            windowId: 913_110,
+            to: workspaceId
+        )
+        XCTAssertTrue(controller.workspaceManager.requestNativeFullscreenEnter(fullscreen, in: workspaceId))
+        XCTAssertTrue(controller.workspaceManager.markNativeFullscreenSuspended(fullscreen, ownsNativeFocus: false))
+        let token = controller.workspaceManager.addWindow(
+            AXWindowRef(element: AXUIElementCreateApplication(913_011), windowId: 913_111),
+            pid: 913_011,
+            windowId: 913_111,
+            to: workspaceId
+        )
+        controller.axEventHandler.windowInfoProvider = {
+            WindowServerInfo(id: $0, pid: token.pid, level: 0, frame: .zero, attributes: orderedIn ? 0x2 : 0)
+        }
+        return (controller, token)
+    }
+
+    private func retireMissingWindows(of token: WindowToken, controller: WMController) {
+        var progress = FullRescanProgress(affectedWorkspaceIds: [])
+        controller.layoutRefreshController.retireFullRescanWindows(
+            context: FullRescanMutationContext(
+                controller: controller,
+                enumerationSnapshot: AXManager.FullRescanEnumerationSnapshot(
+                    windows: [],
+                    successfullyEnumeratedPIDs: [token.pid],
+                    failedPIDs: [],
+                    authoritativeTargetPIDs: [token.pid],
+                    exactWindowIds: nil,
+                    identityAliasesByWindowId: [:],
+                    windowServerInfoByWindowId: [:]
+                ),
+                scope: .targeted(appPIDs: [token.pid], nativeSpaceIds: []),
+                focusedWorkspaceId: nil,
+                screenFrames: []
+            ),
+            hadNativeFullscreenLifecycleContextAtStart: true,
+            permitsMissingRetirement: true,
+            progress: &progress
+        )
     }
 }

@@ -62,37 +62,75 @@ extension LayoutRefreshController {
         retirement: FullRescanRetirementContext,
         progress: inout FullRescanProgress
     ) {
-        let controller = context.controller
-        let enumerationSnapshot = context.enumerationSnapshot
-        let shouldPreserveMissingWindows = retirement.shouldPreserveMissingWindows
         let nativeFullscreenRetirementKeys = retirement.nativeFullscreenRetirementKeys
-        if shouldPreserveMissingWindows {
-            for entry in trackedEntries where !nativeFullscreenRetirementKeys.contains(entry.token) {
+        if retirement.shouldPreserveMissingWindows {
+            let preservedEntries = trackedEntries.filter { !nativeFullscreenRetirementKeys.contains($0.token) }
+            let orderedOutTokens = orderedOutMissingTokens(preservedEntries, context: context, progress: progress)
+            for entry in preservedEntries where !orderedOutTokens.contains(entry.token) {
                 progress.seenKeys.insert(.init(pid: entry.pid, windowId: entry.windowId))
             }
+            preserveHiddenOrUnenumeratedWindows(
+                preservedEntries.filter { orderedOutTokens.contains($0.token) },
+                context: context, retirement: retirement, progress: &progress
+            )
         } else {
-            for entry in trackedEntries
-                where controller.workspaceManager.isAppHidden(pid: entry.pid)
-                || (
-                    controller.workspaceManager.layoutReason(for: entry.token) == .nativeFullscreen
-                        && !nativeFullscreenRetirementKeys.contains(entry.token)
-                )
-            {
-                progress.seenKeys.insert(.init(pid: entry.pid, windowId: entry.windowId))
-            }
-
-            for entry in trackedEntries
-                where enumerationSnapshot.failedPIDs.contains(entry.pid)
-            {
-                progress.seenKeys.insert(.init(pid: entry.pid, windowId: entry.windowId))
-            }
-
-            preserveScratchpadHiddenWindowsDuringFullRescan(
-                trackedEntries,
-                windowServerInfoByWindowId: enumerationSnapshot.windowServerInfoByWindowId,
-                seenKeys: &progress.seenKeys
+            preserveHiddenOrUnenumeratedWindows(
+                trackedEntries, context: context, retirement: retirement, progress: &progress
             )
         }
+    }
+
+    // Native fullscreen hides other Spaces from AX, so missing windows are kept. Slack and Spark
+    // order a window out on close instead, and the window server still reports it on a Space.
+    private func orderedOutMissingTokens(
+        _ entries: [WindowState],
+        context: FullRescanMutationContext,
+        progress: FullRescanProgress
+    ) -> Set<WindowToken> {
+        let axEventHandler = context.controller.axEventHandler
+        let topology = context.controller.workspaceManager.spaceTopology
+        return Set(entries.lazy.filter { entry in
+            // Inactive-Space windows can never retire, so skip their window server query.
+            guard !progress.seenKeys.contains(entry.token),
+                  context.enumerationSnapshot.successfullyEnumeratedPIDs.contains(entry.pid),
+                  !topology.isWindowOnKnownInactiveSpace(entry.windowId),
+                  let windowId = UInt32(exactly: entry.windowId),
+                  let info = axEventHandler.windowInfoProvider(windowId)
+            else { return false }
+            return info.pid == entry.pid && info.attributes & 0x2 == 0
+        }.map(\.token))
+    }
+
+    private func preserveHiddenOrUnenumeratedWindows(
+        _ entries: [WindowState],
+        context: FullRescanMutationContext,
+        retirement: FullRescanRetirementContext,
+        progress: inout FullRescanProgress
+    ) {
+        let controller = context.controller
+        let enumerationSnapshot = context.enumerationSnapshot
+        let nativeFullscreenRetirementKeys = retirement.nativeFullscreenRetirementKeys
+        for entry in entries
+            where controller.workspaceManager.isAppHidden(pid: entry.pid)
+            || (
+                controller.workspaceManager.layoutReason(for: entry.token) == .nativeFullscreen
+                    && !nativeFullscreenRetirementKeys.contains(entry.token)
+            )
+        {
+            progress.seenKeys.insert(.init(pid: entry.pid, windowId: entry.windowId))
+        }
+
+        for entry in entries
+            where enumerationSnapshot.failedPIDs.contains(entry.pid)
+        {
+            progress.seenKeys.insert(.init(pid: entry.pid, windowId: entry.windowId))
+        }
+
+        preserveScratchpadHiddenWindowsDuringFullRescan(
+            entries,
+            windowServerInfoByWindowId: enumerationSnapshot.windowServerInfoByWindowId,
+            seenKeys: &progress.seenKeys
+        )
     }
 
     private func fullRescanRetirementEligibility(
