@@ -178,6 +178,36 @@ extension NiriLayoutEngine {
         return true
     }
 
+    /// Scales all columns so that together they fill the screen, when a change left a gap or pushed a column off screen.
+    @discardableResult
+    func fillScreenWithAllColumns(context: NiriInteractionContext, state: inout ViewportState) -> Bool {
+        guard canFillScreen(context), interactiveResize == nil, interactiveMove == nil,
+              singleWindowLayoutContext(in: context.workspaceId) == nil
+        else { return false }
+        resolveFillScreenSpans(context)
+        let columns = columns(in: context.workspaceId)
+        // Below the minimum share, the columns cannot all fit, so plain scrolling takes over.
+        guard !columns.isEmpty, CGFloat(columns.count) * NiriFillScreenSplit.minimumProportion <= 1,
+              columns.allSatisfy({ $0.effectiveSizingMode == .normal }),
+              columns.indices.contains(state.activeColumnIndex),
+              filledVisibleColumns(context: context, state: state)?.count != columns.count
+        else { return false }
+
+        let proportions = columns.map { widthProportion(.fixed($0.settledWidth), context: context) }
+        let total = proportions.reduce(0, +)
+        guard total > 0 else { return false }
+        let focused = columns[state.activeColumnIndex]
+        keepManualWidths(columns, context: context)
+        applyFillScreenSplit(
+            zip(columns, proportions).filter { $0.0 !== focused }.map { ($0.0, $0.1 / total) },
+            focused: focused,
+            filledSpan: filledSpan(columnCount: columns.count, context: context),
+            context: context,
+            state: &state
+        )
+        return true
+    }
+
     /// Remembers the columns that fill the screen, so that a later pass can refill it when one of them goes away.
     func recordFilledColumns(context: NiriInteractionContext, state: ViewportState) {
         ensureState(for: context.workspaceId).filledColumns = filledVisibleColumns(context: context, state: state)?
