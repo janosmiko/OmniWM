@@ -187,7 +187,8 @@ extension NiriLayoutEngine {
             startMouseLocation: startLocation,
             columnIndex: target.columnIndex,
             orientation: orientation,
-            originalViewOffset: isLeadingPrimaryEdge ? viewOffset : nil
+            originalViewOffset: isLeadingPrimaryEdge ? viewOffset : nil,
+            filledColumnsAtStart: states[workspaceId]?.filledColumns ?? []
         )
 
         NiriLayoutTrace.record(

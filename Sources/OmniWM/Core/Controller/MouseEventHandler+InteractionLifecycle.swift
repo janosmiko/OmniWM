@@ -156,12 +156,25 @@ extension MouseEventHandler {
             return
         }
         let geometry = controller.niriInteractionGeometry(for: monitor)
+        let motion = controller.motionPolicy.snapshot()
         controller.workspaceManager.withNiriViewportState(for: workspaceId) { viewportState in
             engine.interactiveResizeEnd(
-                motion: controller.motionPolicy.snapshot(),
+                motion: motion,
                 state: &viewportState,
                 workingFrame: geometry.workingFrame,
                 gaps: geometry.innerGap
+            )
+            guard controller.settings.niri.fillScreenOnResize else { return }
+            engine.fillScreenAfterInteractiveResize(
+                resize,
+                context: .init(
+                    workspaceId: workspaceId,
+                    motion: motion,
+                    workingFrame: geometry.workingFrame,
+                    gaps: geometry.innerGap,
+                    orientation: resize.orientation
+                ),
+                state: &viewportState
             )
         }
         controller.workspaceManager.recordLayoutOperation(

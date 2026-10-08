@@ -99,6 +99,8 @@ struct InteractiveResize {
     let orientation: Monitor.Orientation
 
     let originalViewOffset: CGFloat?
+
+    var filledColumnsAtStart: [(id: NodeId, proportion: CGFloat)] = []
 }
 
 struct ResizeConfiguration {
