@@ -55,6 +55,51 @@ final class NiriFillScreenLayoutTests: XCTestCase {
         }
     }
 
+    func testColumnThatOutgrowsScreenIsScaledBack() throws {
+        let (controller, workspaceId) = try makeNiriController(fillsScreen: true)
+        let tokens = (201 ... 203).map { addWindow(windowId: $0, to: workspaceId, controller: controller) }
+        try layout(workspaceId, controller: controller)
+        controller.layoutRefreshController.layoutState.hasCompletedInitialRefresh = true
+
+        try setManualWidth(0.9, of: tokens[1], in: workspaceId, controller: controller)
+        try layout(workspaceId, controller: controller)
+
+        _ = try visibleFrames(tokens, in: workspaceId, controller: controller)
+    }
+
+    func testShiftedNarrowColumnsAreRefitted() throws {
+        let (controller, workspaceId) = try makeNiriController(fillsScreen: true)
+        let tokens = (201 ... 202).map { addWindow(windowId: $0, to: workspaceId, controller: controller) }
+        try layout(workspaceId, controller: controller)
+        controller.layoutRefreshController.layoutState.hasCompletedInitialRefresh = true
+
+        for token in tokens {
+            try setManualWidth(0.34, of: token, in: workspaceId, controller: controller)
+        }
+        controller.workspaceManager.withNiriViewportState(for: workspaceId) { $0.jumpOffset(to: $0.viewOffset - 200) }
+        try layout(workspaceId, controller: controller)
+
+        _ = try visibleFrames(tokens, in: workspaceId, controller: controller)
+    }
+
+    func testLiveMouseResizeIsNotRefitted() throws {
+        let (controller, workspaceId) = try makeNiriController(fillsScreen: true)
+        let tokens = (201 ... 202).map { addWindow(windowId: $0, to: workspaceId, controller: controller) }
+        try layout(workspaceId, controller: controller)
+        controller.layoutRefreshController.layoutState.hasCompletedInitialRefresh = true
+        let engine = try XCTUnwrap(controller.niriEngine)
+        let node = try XCTUnwrap(engine.findNode(for: tokens[0], in: workspaceId))
+        XCTAssertTrue(engine.interactiveResizeBegin(
+            windowId: node.id, edges: .right, startLocation: .zero, in: workspaceId, orientation: .horizontal
+        ))
+
+        let resized = try setManualWidth(0.3, of: tokens[0], in: workspaceId, controller: controller)
+        try layout(workspaceId, controller: controller)
+
+        XCTAssertEqual(resized.settledWidth, spanWidth(0.3), accuracy: 0.5)
+        engine.clearInteractiveResize()
+    }
+
     func testClosingWindowWhileSettingIsOffDoesNotRefillLater() throws {
         let (controller, workspaceId) = try makeNiriController(fillsScreen: true)
         let first = addWindow(windowId: 201, to: workspaceId, controller: controller)
@@ -87,6 +132,22 @@ final class NiriFillScreenLayoutTests: XCTestCase {
         let engine = try XCTUnwrap(controller.niriEngine)
         let node = try XCTUnwrap(engine.findNode(for: first, in: workspaceId))
         XCTAssertEqual(engine.column(of: node)?.settledWidth, spanWidth(0.5))
+    }
+
+    @discardableResult
+    private func setManualWidth(
+        _ proportion: CGFloat,
+        of token: WindowToken,
+        in workspaceId: WorkspaceDescriptor.ID,
+        controller: WMController
+    ) throws -> NiriContainer {
+        let engine = try XCTUnwrap(controller.niriEngine)
+        let column = try XCTUnwrap(engine.findNode(for: token, in: workspaceId).flatMap { engine.column(of: $0) })
+        engine.beginManualPrimarySpanResize(column, in: workspaceId, orientation: .horizontal)
+        column.width = .fixed(spanWidth(proportion))
+        column.cachedWidth = spanWidth(proportion)
+        column.targetWidth = nil
+        return column
     }
 
     private func spanWidth(_ proportion: CGFloat) -> CGFloat {
