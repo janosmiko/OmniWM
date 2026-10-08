@@ -82,6 +82,7 @@ struct MouseInputState {
     var awaitsNativeTitleBarDragTarget = false
     var nativeTitleBarDragFallbackToken: WindowToken?
     var nativeTitleBarDragFallbackReleased = false
+    var nativeResizeHandlePressLocation: CGPoint?
     var nativeTitleBarDrag: NativeTitleBarDrag?
 
     var lastFocusFollowsMouseTime: Date = .distantPast

@@ -94,6 +94,7 @@ extension MouseEventHandler {
             observedFrame: observedFrame, lastAppliedFrame: lastAppliedFrame,
             receivedFrameChange: drag.receivedFrameChange
         )
+        adoptNativeEdgeResize(of: entry, from: lastAppliedFrame, to: observedFrame)
         settleReleasedNativeTitleBarDrag(
             drag,
             entry: entry,
@@ -186,6 +187,7 @@ extension MouseEventHandler {
         state.awaitsNativeTitleBarDragTarget = false
         state.nativeTitleBarDragFallbackToken = nil
         state.nativeTitleBarDragFallbackReleased = false
+        state.nativeResizeHandlePressLocation = nil
         if let drag = state.nativeTitleBarDrag {
             _ = controller?.axManager.endNativeTitleBarDrag(for: drag.token)
         }
@@ -232,7 +234,7 @@ extension MouseEventHandler {
         guard button == .left,
               state.nativeTitleBarDrag == nil,
               state.awaitsNativeTitleBarDragTarget,
-              state.nativeTitleBarDragFallbackToken != nil,
+              state.nativeTitleBarDragFallbackToken != nil || state.nativeResizeHandlePressLocation != nil,
               state.moveTap == nil
         else { return }
         state.nativeTitleBarDragFallbackReleased = true

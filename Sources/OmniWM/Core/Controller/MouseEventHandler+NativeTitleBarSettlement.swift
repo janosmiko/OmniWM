@@ -11,7 +11,7 @@ extension MouseEventHandler {
            state.moveTap == nil,
            state.nativeTitleBarDragFallbackReleased
            || pressedMouseButtonsProvider() & MouseButton.left.pressedMask != 0,
-           state.nativeTitleBarDragFallbackToken == entry.token,
+           state.nativeTitleBarDragFallbackToken == entry.token || pressedNativeResizeHandle(of: entry),
            entry.mode == .tiling,
            let controller
         {
@@ -59,6 +59,9 @@ extension MouseEventHandler {
         state.nativeTitleBarDragFallbackReleased = false
         var drag = MouseInputState.NativeTitleBarDrag(token: entry.token)
         if released {
+            adoptNativeEdgeResize(
+                of: entry, from: controller.axManager.lastAppliedFrame(for: entry.windowId), to: observedFrame
+            )
             if let pendingFrame = controller.axManager.pendingFrameWrite(for: entry.windowId) {
                 awaitNativeTitleBarDragFrameWrite(
                     pendingFrame,

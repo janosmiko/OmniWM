@@ -103,6 +103,7 @@ extension MouseEventHandler {
             controller.axEventHandler.noteUnmanagedPointerClick()
         }
         state.nativeTitleBarDragFallbackToken = exactToken == nil ? focusIntentToken : nil
+        state.nativeResizeHandlePressLocation = nativeResizeHandlePress(at: location, workspaceId: wsId)
         if let exactToken {
             state.awaitsNativeTitleBarDragTarget = false
             let token = exactToken
