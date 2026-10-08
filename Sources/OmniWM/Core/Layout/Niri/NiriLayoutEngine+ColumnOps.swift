@@ -199,6 +199,7 @@ extension NiriLayoutEngine {
         window.detach()
         newColumn.appendChild(window)
         window.isHiddenInTabbedMode = false
+        states[context.workspaceId]?.expelledColumnIds.append(newColumn.id)
 
         if sourceWasTabbed, !sourceColumn.children.isEmpty {
             sourceColumn.clampActiveTileIdx()
