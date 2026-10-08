@@ -280,6 +280,102 @@ final class NiriFillScreenStructureTests: XCTestCase {
         assertProportions(fixture, [1.0])
     }
 
+    func testMouseShrinkOfFilledColumnGivesWidthToNeighbor() throws {
+        var fixture = makeFixture([0.5, 0.5])
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+
+        let resize = try mouseResizeFirstColumn(by: span(0.3) - span(0.5), in: &fixture)
+
+        XCTAssertTrue(fixture.engine.fillScreenAfterInteractiveResize(
+            resize, context: context(fixture), state: &fixture.state
+        ))
+        assertProportions(fixture, [0.3, 0.7])
+    }
+
+    func testMouseResizeWithoutFilledScreenKeepsNeighborWidth() throws {
+        var fixture = makeFixture([0.5, 0.5])
+
+        let resize = try mouseResizeFirstColumn(by: span(0.3) - span(0.5), in: &fixture)
+
+        XCTAssertFalse(fixture.engine.fillScreenAfterInteractiveResize(
+            resize, context: context(fixture), state: &fixture.state
+        ))
+        assertProportions(fixture, [0.3, 0.5])
+    }
+
+    func testMouseResizeUpdatesFilledColumnsRecord() throws {
+        var fixture = makeFixture([0.5, 0.5])
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+
+        let resize = try mouseResizeFirstColumn(by: span(0.3) - span(0.5), in: &fixture)
+        XCTAssertTrue(fixture.engine.fillScreenAfterInteractiveResize(
+            resize, context: context(fixture), state: &fixture.state
+        ))
+
+        let recorded = fixture.engine.ensureState(for: fixture.workspaceId).filledColumns.map(\.proportion)
+        XCTAssertEqual(recorded.count, 2)
+        for (proportion, expected) in zip(recorded, [0.3, 0.7]) {
+            XCTAssertEqual(proportion, expected, accuracy: 0.001)
+        }
+    }
+
+    func testColumnJoiningFilledScreenCancelsMouseResize() throws {
+        var fixture = makeFixture([0.5, 0.5])
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+        let window = try XCTUnwrap(fixture.columns.first?.windowNodes.first)
+        XCTAssertTrue(fixture.engine.interactiveResizeBegin(
+            windowId: window.id, edges: [.right], startLocation: .zero,
+            in: fixture.workspaceId, orientation: .horizontal
+        ))
+
+        XCTAssertTrue(try insertColumn(after: fixture.state.selectedNodeId, into: &fixture))
+
+        XCTAssertNil(fixture.engine.interactiveResize)
+    }
+
+    func testMouseResizeWithoutWidthChangeKeepsFittedWidths() throws {
+        var fixture = makeFixture([0.5, 0.5, 0.5])
+        fixture.engine.resolvePrimaryContainerSpans(
+            in: fixture.workspaceId, workingFrame: workingFrame, gaps: gap, orientation: .horizontal
+        )
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+        let fitted = fixture.columns.map(\.settledWidth)
+        let window = try XCTUnwrap(fixture.columns[1].windowNodes.first)
+
+        for edges: ResizeEdge in [[.top], [.right]] {
+            XCTAssertTrue(fixture.engine.interactiveResizeBegin(
+                windowId: window.id, edges: edges, startLocation: .zero,
+                in: fixture.workspaceId, orientation: .horizontal
+            ))
+            let resize = try XCTUnwrap(fixture.engine.interactiveResize)
+            fixture.engine.interactiveResizeEnd(
+                motion: .disabled, state: &fixture.state, workingFrame: workingFrame, gaps: gap
+            )
+            XCTAssertFalse(fixture.engine.fillScreenAfterInteractiveResize(
+                resize, context: context(fixture), state: &fixture.state
+            ))
+        }
+        XCTAssertEqual(fixture.columns.map(\.settledWidth), fitted)
+    }
+
+    private func mouseResizeFirstColumn(by delta: CGFloat, in fixture: inout Fixture) throws -> InteractiveResize {
+        let window = try XCTUnwrap(fixture.columns.first?.windowNodes.first)
+        XCTAssertTrue(fixture.engine.interactiveResizeBegin(
+            windowId: window.id, edges: [.right], startLocation: .zero,
+            in: fixture.workspaceId, orientation: .horizontal
+        ))
+        XCTAssertTrue(fixture.engine.interactiveResizeUpdate(
+            currentLocation: CGPoint(x: delta, y: 0),
+            monitorFrame: workingFrame,
+            gaps: LayoutGaps(horizontal: gap, vertical: gap)
+        ))
+        let resize = try XCTUnwrap(fixture.engine.interactiveResize)
+        fixture.engine.interactiveResizeEnd(
+            motion: .disabled, state: &fixture.state, workingFrame: workingFrame, gaps: gap
+        )
+        return resize
+    }
+
     func testFillScreenAfterExpelWithoutExpelKeepsWidths() {
         var fixture = makeFixture([0.5, 0.5, 0.5])
         fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)

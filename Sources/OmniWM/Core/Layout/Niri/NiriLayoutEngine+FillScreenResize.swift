@@ -135,6 +135,49 @@ extension NiriLayoutEngine {
         return true
     }
 
+    /// Moves the width change of a mouse resize onto the columns that filled the screen when the resize started.
+    @discardableResult
+    func fillScreenAfterInteractiveResize(
+        _ resize: InteractiveResize,
+        context: NiriInteractionContext,
+        state: inout ViewportState
+    ) -> Bool {
+        let columns = columns(in: context.workspaceId)
+        let filled: FilledColumns = resize.filledColumnsAtStart.compactMap { entry in
+            columns.first { $0.id == entry.id }.map { ($0, entry.proportion) }
+        }
+        guard canFillScreen(context), resize.originalContainerSpan != nil,
+              filled.count == resize.filledColumnsAtStart.count,
+              let window = findNode(by: resize.windowId, in: context.workspaceId) as? NiriWindow,
+              let column = findColumn(containing: window, in: context.workspaceId),
+              let before = filled.first(where: { $0.column === column })?.proportion,
+              // Measure like recordFilledColumns, so that a drag that keeps the width changes nothing.
+              case let target = widthProportion(.fixed(column.settledWidth), context: context),
+              abs(target - before) > 1e-6,
+              case let others = filled.filter({ $0.column !== column }),
+              let split = NiriFillScreenSplit(
+                  focused: before,
+                  target: target,
+                  others: others.map(\.proportion),
+                  minimum: NiriFillScreenSplit.minimumProportion
+              )
+        else { return false }
+
+        keepManualWidths(filled.map(\.column), context: context)
+        applyFillScreenSplit(
+            Array(zip(others.map(\.column), split.others)),
+            focused: column,
+            filledSpan: filledSpan(columnCount: filled.count, context: context),
+            context: context,
+            state: &state
+        )
+        // A window can close before the next layout pass records the new widths.
+        ensureState(for: context.workspaceId).filledColumns = filled.map {
+            ($0.column.id, widthProportion(.fixed($0.column.settledWidth), context: context))
+        }
+        return true
+    }
+
     /// Remembers the columns that fill the screen, so that a later pass can refill it when one of them goes away.
     func recordFilledColumns(context: NiriInteractionContext, state: ViewportState) {
         ensureState(for: context.workspaceId).filledColumns = filledVisibleColumns(context: context, state: state)?

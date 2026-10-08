@@ -29,6 +29,32 @@ final class NiriFillScreenLayoutTests: XCTestCase {
         XCTAssertEqual(closed.map(\.width), [spanWidth(0.5), spanWidth(0.5)])
     }
 
+    func testOpeningSecondWindowNextToSingleWindowFitsBoth() throws {
+        for firstWidth: ProportionalSize? in [nil, .fixed(spanWidth(0.8)), .proportion(0.99)] {
+            let (controller, workspaceId) = try makeNiriController(fillsScreen: true)
+            controller.settings.niri.alwaysCenterSingleColumn = true
+            controller.settings.niri.singleWindowFit = SingleWindowFit(mode: .fill)
+            controller.settings.niri.visibleContainerCount = 2
+            controller.settings.niri.containerPrimarySpanPresets = [0.99, 0.5, 0.33]
+            controller.niriLayoutHandler.enableNiriLayout()
+            let first = addWindow(windowId: 201, to: workspaceId, controller: controller)
+            try layout(workspaceId, controller: controller)
+            controller.layoutRefreshController.layoutState.hasCompletedInitialRefresh = true
+            if let firstWidth {
+                let engine = try XCTUnwrap(controller.niriEngine)
+                let column = try XCTUnwrap(engine.findNode(for: first, in: workspaceId)
+                    .flatMap { engine.column(of: $0) })
+                column.width = firstWidth
+                try layout(workspaceId, controller: controller)
+            }
+
+            let second = addWindow(windowId: 202, to: workspaceId, controller: controller)
+            try layout(workspaceId, controller: controller)
+
+            _ = try visibleFrames([first, second], in: workspaceId, controller: controller)
+        }
+    }
+
     func testClosingWindowWhileSettingIsOffDoesNotRefillLater() throws {
         let (controller, workspaceId) = try makeNiriController(fillsScreen: true)
         let first = addWindow(windowId: 201, to: workspaceId, controller: controller)
