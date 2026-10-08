@@ -155,17 +155,20 @@ extension NiriLayoutEngine {
               case let target = widthProportion(.fixed(column.settledWidth), context: context),
               abs(target - before) > 1e-6,
               case let others = filled.filter({ $0.column !== column }),
+              // A screen edge has no neighbor, so all other columns share the change.
+              case let receivers = edgeNeighbor(of: column, edges: resize.edges, in: filled).map({ [$0] }) ?? others,
               let split = NiriFillScreenSplit(
                   focused: before,
                   target: target,
-                  others: others.map(\.proportion),
+                  others: receivers.map(\.proportion),
                   minimum: NiriFillScreenSplit.minimumProportion
               )
         else { return false }
 
+        let resized = Array(zip(receivers.map(\.column), split.others))
         keepManualWidths(filled.map(\.column), context: context)
         applyFillScreenSplit(
-            Array(zip(others.map(\.column), split.others)),
+            others.map { entry in (entry.column, resized.first { $0.0 === entry.column }?.1 ?? entry.proportion) },
             focused: column,
             filledSpan: filledSpan(columnCount: filled.count, context: context),
             context: context,
@@ -212,6 +215,16 @@ extension NiriLayoutEngine {
             state: &state
         )
         return true
+    }
+
+    private func edgeNeighbor(
+        of column: NiriContainer,
+        edges: ResizeEdge,
+        in filled: FilledColumns
+    ) -> (column: NiriContainer, proportion: CGFloat)? {
+        guard let index = filled.firstIndex(where: { $0.column === column }) else { return nil }
+        let neighbor = edges.contains(.left) ? index - 1 : edges.contains(.right) ? index + 1 : -1
+        return filled.indices.contains(neighbor) ? filled[neighbor] : nil
     }
 
     /// Remembers the columns that fill the screen, so that a later pass can refill it when one of them goes away.
