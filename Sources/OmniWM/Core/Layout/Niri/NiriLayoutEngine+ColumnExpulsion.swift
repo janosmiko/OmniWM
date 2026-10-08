@@ -41,6 +41,7 @@ extension NiriLayoutEngine {
             to: newColumn,
             in: context.workspaceId
         )
+        states[context.workspaceId]?.expelledColumnIds.append(newColumn.id)
 
         animateInsertedColumn(newColumn, snapshot: snapshot, context: context, state: state)
 
@@ -139,6 +140,7 @@ extension NiriLayoutEngine {
         newColumn.appendChild(window)
         resetMovedWindowColumnLocalSizing(window)
         window.isHiddenInTabbedMode = false
+        states[root.workspaceId]?.expelledColumnIds.append(newColumn.id)
 
         return newColumn
     }

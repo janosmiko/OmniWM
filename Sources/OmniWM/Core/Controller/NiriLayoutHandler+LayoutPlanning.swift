@@ -355,6 +355,7 @@ extension NiriLayoutHandler {
 
     // Runs after the arrival scroll, because that scroll measures columns at their old animated widths.
     private func keepScreenFilled(pass: NiriLayoutPass, state: inout ViewportState, insertion: InsertionContext) {
+        let expelledColumnIds = pass.engine.takeExpelledColumnIds(in: pass.wsId)
         guard fillsScreen else {
             pass.engine.forgetFilledColumns(in: pass.wsId)
             return
@@ -368,6 +369,8 @@ extension NiriLayoutHandler {
                 context: context,
                 state: &state
             )
+        } else if !refilledAfterRemoval {
+            pass.engine.fillScreenAfterExpel(expelledColumnIds, context: context, state: &state)
         }
         pass.engine.recordFilledColumns(context: context, state: state)
     }

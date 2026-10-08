@@ -155,6 +155,90 @@ final class NiriFillScreenStructureTests: XCTestCase {
         XCTAssertEqual(fixture.state.viewOffset, -(span(0.65) + gap * 2), accuracy: 0.01)
     }
 
+    func testMovingWindowLeftTwiceSwapsFilledColumns() throws {
+        var fixture = makeFixture([0.5, 0.5])
+        let moved = try XCTUnwrap(fixture.engine.findNode(
+            for: WindowToken(pid: 1, windowId: 2),
+            in: fixture.workspaceId
+        ))
+        let moveLeft = { (fixture: inout Fixture) in
+            fixture.engine.recordFilledColumns(context: self.context(fixture), state: fixture.state)
+            XCTAssertTrue(fixture.engine.consumeOrExpelWindow(
+                moved, direction: .left, context: self.context(fixture), state: &fixture.state
+            ))
+        }
+
+        moveLeft(&fixture)
+        XCTAssertTrue(fixture.engine.fillScreenAfterRemoval(context: context(fixture), state: &fixture.state))
+        assertProportions(fixture, [1])
+        moveLeft(&fixture)
+        XCTAssertTrue(fillScreenAfterExpel(&fixture))
+
+        assertProportions(fixture, [0.5, 0.5])
+        XCTAssertTrue(fixture.columns.first?.windowNodes.first === moved)
+        XCTAssertEqual(fixture.state.viewOffset, -gap, accuracy: 0.01)
+    }
+
+    func testTwoExpelsBeforeOneLayoutPassSplitScreenInThirds() throws {
+        var fixture = makeFixture([1 / 3, 1 / 3, 1 / 3])
+        let windows = try (1 ... 3).map { windowId in
+            try XCTUnwrap(fixture.engine.findNode(
+                for: WindowToken(pid: 1, windowId: windowId),
+                in: fixture.workspaceId
+            ))
+        }
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+        for window in windows.dropFirst() {
+            XCTAssertTrue(fixture.engine.consumeOrExpelWindow(
+                window, direction: .left, context: context(fixture), state: &fixture.state
+            ))
+        }
+        XCTAssertTrue(fixture.engine.fillScreenAfterRemoval(context: context(fixture), state: &fixture.state))
+        assertProportions(fixture, [1])
+
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+        for window in windows.dropFirst().reversed() {
+            XCTAssertTrue(fixture.engine.consumeOrExpelWindow(
+                window, direction: .right, context: context(fixture), state: &fixture.state
+            ))
+        }
+        XCTAssertTrue(fillScreenAfterExpel(&fixture))
+
+        assertProportions(fixture, [1 / 3, 1 / 3, 1 / 3])
+    }
+
+    func testConsumeAndExpelBeforeOneLayoutPassKeepFilledWidths() throws {
+        var fixture = makeFixture([0.5, 0.5])
+        let moved = try XCTUnwrap(fixture.engine.findNode(
+            for: WindowToken(pid: 1, windowId: 2),
+            in: fixture.workspaceId
+        ))
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+        for _ in 0 ..< 2 {
+            XCTAssertTrue(fixture.engine.consumeOrExpelWindow(
+                moved, direction: .left, context: context(fixture), state: &fixture.state
+            ))
+        }
+
+        XCTAssertFalse(fixture.engine.fillScreenAfterRemoval(context: context(fixture), state: &fixture.state))
+        XCTAssertFalse(fillScreenAfterExpel(&fixture))
+        assertProportions(fixture, [0.5, 0.5])
+        XCTAssertTrue(fixture.columns.first?.windowNodes.first === moved)
+    }
+
+    func testFillScreenAfterExpelWithoutExpelKeepsWidths() {
+        var fixture = makeFixture([0.5, 0.5, 0.5])
+        fixture.engine.recordFilledColumns(context: context(fixture), state: fixture.state)
+
+        XCTAssertFalse(fillScreenAfterExpel(&fixture))
+        assertProportions(fixture, [0.5, 0.5, 0.5])
+    }
+
+    private func fillScreenAfterExpel(_ fixture: inout Fixture) -> Bool {
+        let expelled = fixture.engine.takeExpelledColumnIds(in: fixture.workspaceId)
+        return fixture.engine.fillScreenAfterExpel(expelled, context: context(fixture), state: &fixture.state)
+    }
+
     func testClosingWithoutFillKeepsWidths() {
         var fixture = makeFixture([0.4, 0.1, 0.5])
         fixture.engine.removeWindows(
