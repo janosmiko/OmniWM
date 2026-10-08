@@ -24,7 +24,13 @@ extension NiriLayoutHandler {
     func cycleContainerPrimarySpan(forward: Bool, target: WindowTarget = .focused) -> Bool {
         performWindowSizing(on: target) { engine, windowNode, context, state in
             guard let column = engine.findColumn(containing: windowNode, in: context.workspaceId) else { return nil }
-            engine.toggleContainerPrimarySpan(column, forwards: forward, context: context, state: &state)
+            engine.toggleContainerPrimarySpan(
+                column,
+                forwards: forward,
+                context: context,
+                state: &state,
+                fillsScreen: controller?.settings.niri.fillScreenOnResize ?? false
+            )
             return .containerPrimarySpanChanged
         }
     }
