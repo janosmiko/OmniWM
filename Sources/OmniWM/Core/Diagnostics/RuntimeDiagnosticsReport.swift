@@ -35,6 +35,8 @@ enum RuntimeDiagnosticsReport {
             section("Layout Build Metrics", controller.layoutRefreshController.layoutBuildMetricsDump()),
             section("Create-Focus Trace", controller.axEventHandler.createFocusTraceDump()),
             section("Managed Replacement Trace", controller.axEventHandler.managedReplacementTraceDump()),
+            section("Missing Window Retirement", controller.layoutRefreshController.missingRetirementDump()),
+            section("Admission Protection", controller.axEventHandler.admissionProtectionDump()),
             settingsSection(controller)
         ]
         .joined(separator: "\n\n")
