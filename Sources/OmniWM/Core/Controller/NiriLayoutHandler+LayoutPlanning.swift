@@ -345,16 +345,16 @@ extension NiriLayoutHandler {
             return
         }
         let context = pass.interactionContext
-        let refilledAfterRemoval = pass.engine.fillScreenAfterRemoval(context: context, state: &state)
-        if !refilledAfterRemoval, let fill = insertion.fillScreenInsert {
+        // Expel first, because a moved column replaces the column that it left.
+        let refilled = pass.engine.fillScreenAfterExpel(expelledColumnIds, context: context, state: &state)
+            || pass.engine.fillScreenAfterRemoval(context: context, state: &state)
+        if !refilled, let fill = insertion.fillScreenInsert {
             pass.engine.fillScreenAfterInsert(
                 fill.column,
                 filledBefore: fill.filledBefore,
                 context: context,
                 state: &state
             )
-        } else if !refilledAfterRemoval {
-            pass.engine.fillScreenAfterExpel(expelledColumnIds, context: context, state: &state)
         }
         pass.engine.recordFilledColumns(context: context, state: state)
     }
