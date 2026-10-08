@@ -100,6 +100,62 @@ final class NiriFillScreenLayoutTests: XCTestCase {
         engine.clearInteractiveResize()
     }
 
+    func testFullWidthColumnIsNotRefitted() throws {
+        let (controller, workspaceId) = try makeNiriController(fillsScreen: true)
+        let tokens = (201 ... 202).map { addWindow(windowId: $0, to: workspaceId, controller: controller) }
+        try layout(workspaceId, controller: controller)
+        controller.layoutRefreshController.layoutState.hasCompletedInitialRefresh = true
+
+        let full = try setManualWidth(1, of: tokens[0], in: workspaceId, controller: controller)
+        _ = full.toggleFullWidthSpec()
+        try layout(workspaceId, controller: controller)
+
+        XCTAssertTrue(full.isFullWidth)
+        XCTAssertEqual(full.settledWidth, spanWidth(1), accuracy: 0.5)
+    }
+
+    func testColumnsThatCannotFitAreLeftAlone() throws {
+        let (controller, workspaceId) = try makeNiriController(fillsScreen: true)
+        let tokens = (201 ... 202).map { addWindow(windowId: $0, to: workspaceId, controller: controller) }
+        for token in tokens {
+            controller.workspaceManager.setCachedConstraints(
+                WindowSizeConstraints(minSize: CGSize(width: 900, height: 1), maxSize: .zero, isFixed: false),
+                for: token
+            )
+        }
+        try layout(workspaceId, controller: controller)
+        controller.layoutRefreshController.layoutState.hasCompletedInitialRefresh = true
+        let engine = try XCTUnwrap(controller.niriEngine)
+        let column = try XCTUnwrap(engine.columns(in: workspaceId).first)
+        column.presetWidthIdx = 1
+
+        try layout(workspaceId, controller: controller)
+
+        // A refit rewrites every column width, and that clears the preset index.
+        XCTAssertEqual(column.presetWidthIdx, 1)
+    }
+
+    func testPresetCycleKeepsScreenFilled() throws {
+        let (controller, workspaceId) = try makeNiriController(fillsScreen: true)
+        let tokens = (201 ... 202).map { addWindow(windowId: $0, to: workspaceId, controller: controller) }
+        try layout(workspaceId, controller: controller)
+        controller.layoutRefreshController.layoutState.hasCompletedInitialRefresh = true
+        let engine = try XCTUnwrap(controller.niriEngine)
+        let selected = try XCTUnwrap(engine.findNode(for: tokens[1], in: workspaceId))
+        let firstWidth = engine.columns(in: workspaceId)[0].settledWidth
+        controller.workspaceManager.withNiriViewportState(for: workspaceId) {
+            $0.selectedNodeId = selected.id
+            $0.activeColumnIndex = 1
+            $0.jumpOffset(to: $0.viewOffset - firstWidth - gap)
+        }
+
+        controller.niriLayoutHandler.cycleSize(forward: true)
+        try layout(workspaceId, controller: controller)
+
+        let frames = try visibleFrames(tokens, in: workspaceId, controller: controller)
+        XCTAssertEqual(frames[1].width, spanWidth(2.0 / 3.0), accuracy: 0.5)
+    }
+
     func testClosingWindowWhileSettingIsOffDoesNotRefillLater() throws {
         let (controller, workspaceId) = try makeNiriController(fillsScreen: true)
         let first = addWindow(windowId: 201, to: workspaceId, controller: controller)
