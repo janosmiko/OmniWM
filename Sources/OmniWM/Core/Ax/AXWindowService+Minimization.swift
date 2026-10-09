@@ -17,7 +17,7 @@ extension AXWindowService {
 
     static func unminimize(_ window: AXWindowRef) -> Bool {
         MainThreadAXSpanTrace.measure(.unminimize, windowId: window.windowId) {
-            AXUIElementSetAttributeValue(window.element, kAXMinimizedAttribute as CFString, kCFBooleanFalse) ==
+            HostEffects.setAXAttribute(window.element, kAXMinimizedAttribute as CFString, kCFBooleanFalse) ==
                 .success
         } succeeded: { $0 }
     }
