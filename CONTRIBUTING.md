@@ -147,7 +147,7 @@ Localization checks and synchronization generate compiler metadata with the sele
 
 Every Swift source and test file starts with the two-line GPL-2.0 header enforced by SwiftFormat. Preserve that header. `Package.swift` keeps its `swift-tools-version` directive on line one. Keep contributions in Swift, and avoid additional source comments; use clear names and structure.
 
-Use focused regression tests for changed behavior. Runtime changes require the full serial `swift test` suite, and changes affecting concurrency also require `swift test --parallel`. Environment-dependent live tests remain opt-in. For motion, focus, layout, and other visible behavior, also describe the manual checks you performed.
+Use focused regression tests for changed behavior. Runtime changes require the full serial `swift test` suite, and changes affecting concurrency also require `swift test --parallel`. Environment-dependent live tests remain opt-in. By default, the test process does not show windows, take focus, move the cursor, or write to other apps' windows. An `OMNIWM_RUN_*=1` variable turns this off. For motion, focus, layout, and other visible behavior, also describe the manual checks you performed.
 
 For changes to setup, packaging, development installation, or related tooling, also run `make test-dev-tools`. This runs the Python development-tooling tests and is included in CI's **Verify** job.
 

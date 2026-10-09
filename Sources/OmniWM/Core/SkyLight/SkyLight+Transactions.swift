@@ -25,6 +25,7 @@ extension SkyLight {
     }
 
     func moveWindow(_ wid: UInt32, to point: CGPoint) -> Bool {
+        guard HostEffects.isEnabled else { return false }
         let cid = getMainConnectionID()
         guard cid != 0 else { return false }
         var pt = point

@@ -152,7 +152,7 @@ extension AXWindowService {
         func setSize() -> AXError {
             guard let sizeValue = values.size else { return .success }
             let start = timing == nil ? 0 : DispatchTime.now().uptimeNanoseconds
-            let error = AXUIElementSetAttributeValue(window.element, kAXSizeAttribute as CFString, sizeValue)
+            let error = HostEffects.setAXAttribute(window.element, kAXSizeAttribute as CFString, sizeValue)
             if let timing {
                 timing.pointee.sizeNs = elapsedNanoseconds(since: start)
             }
@@ -162,7 +162,7 @@ extension AXWindowService {
         func setPosition() -> AXError {
             guard let positionValue = values.position else { return .success }
             let start = timing == nil ? 0 : DispatchTime.now().uptimeNanoseconds
-            let error = AXUIElementSetAttributeValue(
+            let error = HostEffects.setAXAttribute(
                 window.element,
                 kAXPositionAttribute as CFString,
                 positionValue

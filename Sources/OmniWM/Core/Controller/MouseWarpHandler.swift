@@ -30,7 +30,7 @@ final class MouseWarpHandler: NSObject {
         return bounds
     }
 
-    var warpCursor: (CGPoint) -> CGError = { CGWarpMouseCursorPosition($0) }
+    var warpCursor: (CGPoint) -> CGError = { HostEffects.warpCursor(to: $0) }
     var postMouseMovedEvent: (CGPoint) -> Void = { point in
         if let moveEvent = CGEvent(
             mouseEventSource: nil,
@@ -38,7 +38,7 @@ final class MouseWarpHandler: NSObject {
             mouseCursorPosition: point,
             mouseButton: .left
         ) {
-            moveEvent.post(tap: .cghidEventTap)
+            HostEffects.post(moveEvent, tap: .cghidEventTap)
         }
     }
 

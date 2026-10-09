@@ -4,6 +4,7 @@
 import AppKit
 import Combine
 @testable import OmniWM
+import OmniWMTestHostIsolation
 import XCTest
 
 @MainActor
@@ -220,7 +221,7 @@ final class CommandPaletteFocusTests: XCTestCase {
 
         XCTAssertTrue(panel.styleMask.contains(.nonactivatingPanel))
         XCTAssertTrue(
-            panel.isKeyWindow,
+            OmniWMTestWindowIsKey(panel),
             "active=\(NSApp.isActive) visible=\(panel.isVisible) key=\(String(describing: NSApp.keyWindow))"
         )
         try fixture.insertText("search")

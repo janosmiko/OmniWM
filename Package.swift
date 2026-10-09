@@ -109,9 +109,16 @@ let package = Package(
                 .treatAllWarnings(as: .error)
             ]
         ),
+        .target(
+            name: "OmniWMTestHostIsolation",
+            path: "Tests/OmniWMTestHostIsolation",
+            cSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
         .testTarget(
             name: "OmniWMTests",
-            dependencies: ["OmniWM", "OmniWMCtl", "OmniWMLayerCorners"],
+            dependencies: ["OmniWM", "OmniWMCtl", "OmniWMLayerCorners", "OmniWMTestHostIsolation"],
             path: "Tests/OmniWMTests",
             resources: [
                 .copy("Fixtures")

@@ -41,7 +41,7 @@ struct AppAXEnhancedUIWriteScope {
         let disableStartNs = tracing && enabled ? DispatchTime.now().uptimeNanoseconds : 0
         if enabled {
             AppAXContextRuntimeMetrics.shared.noteEnhancedUICalls(1)
-            AXUIElementSetAttributeValue(axApp, key, kCFBooleanFalse)
+            _ = HostEffects.setAXAttribute(axApp, key, kCFBooleanFalse)
         }
         let disableEndNs = tracing && enabled ? DispatchTime.now().uptimeNanoseconds : 0
         probeNs = AppAXFrameWriteTrace.elapsedNanoseconds(from: probeStartNs, to: probeEndNs)
@@ -52,7 +52,7 @@ struct AppAXEnhancedUIWriteScope {
         let restoreStartNs = tracing && wasEnabled ? DispatchTime.now().uptimeNanoseconds : 0
         if wasEnabled {
             AppAXContextRuntimeMetrics.shared.noteEnhancedUICalls(1)
-            AXUIElementSetAttributeValue(axApp, key, kCFBooleanTrue)
+            _ = HostEffects.setAXAttribute(axApp, key, kCFBooleanTrue)
         }
         let restoreEndNs = tracing && wasEnabled ? DispatchTime.now().uptimeNanoseconds : 0
         return AppAXEnhancedUITiming(

@@ -71,7 +71,7 @@ extension AXWindowService {
     static func setNativeFullscreen(_ window: AXWindowRef, fullscreen: Bool) -> Bool {
         MainThreadAXSpanTrace.measure(.setNativeFullscreen, windowId: window.windowId) {
             let fullScreenAttribute = "AXFullScreen" as CFString
-            let result = AXUIElementSetAttributeValue(
+            let result = HostEffects.setAXAttribute(
                 window.element,
                 fullScreenAttribute,
                 fullscreen as CFBoolean

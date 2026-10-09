@@ -352,8 +352,8 @@ struct CommandPaletteEnvironment {
         }
         keyDown.flags = .maskCommand
         keyUp.flags = .maskCommand
-        keyDown.post(tap: .cgSessionEventTap)
-        keyUp.post(tap: .cgSessionEventTap)
+        HostEffects.post(keyDown, tap: .cgSessionEventTap)
+        HostEffects.post(keyUp, tap: .cgSessionEventTap)
         return true
     }
 

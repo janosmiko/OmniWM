@@ -56,6 +56,7 @@ final class SkyLight {
     }
 
     func commit(_ transaction: CFTypeRef) {
+        guard HostEffects.isEnabled else { return }
         MainThreadAXSpanTrace.measure(.windowServerCommit) {
             transactions.transactionCommit(transaction, 0)
         }
