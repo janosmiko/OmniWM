@@ -393,7 +393,7 @@ final class MediaController {
                 data1: Int((key << 16) | (state << 8)),
                 data2: -1
             )
-            event?.cgEvent?.post(tap: .cghidEventTap)
+            HostEffects.post(event?.cgEvent, tap: .cghidEventTap)
         }
     }
 }

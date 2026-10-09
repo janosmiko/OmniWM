@@ -40,7 +40,7 @@ func getWindowId(from windowRef: AXUIElement) -> CGWindowID? {
 
 @discardableResult
 func performAXAction(_ element: AXUIElement, _ action: CFString, noteKey: String) -> AXError {
-    let result = AXUIElementPerformAction(element, action)
+    let result = HostEffects.performAXAction(element, action)
     if result != .success { FallbackFiringRecorder.shared.note(.ax, noteKey) }
     return result
 }
@@ -132,6 +132,7 @@ func makeKeyWindow(psn: inout ProcessSerialNumber, windowId: UInt32) -> Bool {
 }
 
 func focusWindow(pid: pid_t, windowId: UInt32) {
+    guard HostEffects.isEnabled else { return }
     var psn = ProcessSerialNumber()
     guard getProcessForPID(pid, &psn) == noErr else {
         FallbackFiringRecorder.shared.note(.skylight, "getProcessForPIDFailed")
@@ -146,6 +147,7 @@ func focusWindow(pid: pid_t, windowId: UInt32) {
 
 @discardableResult
 func deactivateSameAppWindow(pid: pid_t, windowId: UInt32) -> Bool {
+    guard HostEffects.isEnabled else { return false }
     var psn = ProcessSerialNumber()
     guard getProcessForPID(pid, &psn) == noErr else {
         FallbackFiringRecorder.shared.note(.skylight, "getProcessForPIDFailed")
@@ -165,6 +167,7 @@ func activateAndFocusSameAppWindow(
     windowId: UInt32,
     windowRef _: AXUIElement
 ) -> Bool {
+    guard HostEffects.isEnabled else { return false }
     var psn = ProcessSerialNumber()
     guard getProcessForPID(pid, &psn) == noErr else {
         FallbackFiringRecorder.shared.note(.skylight, "getProcessForPIDFailed")

@@ -226,7 +226,7 @@ final class WMController {
     let columnModeToast: ColumnModeToastController
     let keyboardModeIndicator: KeyboardModeIndicatorController
     @ObservationIgnored
-    var warpMouseCursorPosition: (CGPoint) -> Void = { CGWarpMouseCursorPosition($0) }
+    var warpMouseCursorPosition: (CGPoint) -> Void = { HostEffects.warpCursor(to: $0) }
     @ObservationIgnored
     var currentMouseLocation: () -> CGPoint = { NSEvent.mouseLocation }
     @ObservationIgnored

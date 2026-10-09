@@ -313,7 +313,7 @@ final class PointerEdgeBarrier: Sendable {
     init(
         installsTap: Bool = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
         displayBounds: @escaping DisplayBounds = PointerEdgeBarrier.activeDisplayBounds,
-        warpCursor: @escaping WarpCursor = { CGWarpMouseCursorPosition($0) },
+        warpCursor: @escaping WarpCursor = { HostEffects.warpCursor(to: $0) },
         postMove: @escaping PostMove = PointerEdgeBarrier.postSyntheticMove,
         clock: @escaping Clock = { clock_gettime_nsec_np(CLOCK_UPTIME_RAW) }
     ) {
@@ -504,8 +504,10 @@ final class PointerEdgeBarrier: Sendable {
 
     static func postSyntheticMove(_ point: CGPoint) {
         DispatchQueue.global(qos: .userInteractive).async {
-            CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left)?
-                .post(tap: .cghidEventTap)
+            HostEffects.post(
+                CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left),
+                tap: .cghidEventTap
+            )
         }
     }
 }

@@ -179,12 +179,20 @@ let package = Package(
                 .treatAllWarnings(as: .error)
             ]
         ),
+        .target(
+            name: "OmniWMTestHostIsolation",
+            path: "Tests/OmniWMTestHostIsolation",
+            cSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
         .testTarget(
             name: "OmniWMTests",
             dependencies: [
                 "OmniWM", "OmniWMAudioTap", "OmniWMCtl", "OmniWMLayerCorners", "OmniWMMaterialColor",
                 "OmniWMScriptHost",
-                "OmniWMShellCore"
+                "OmniWMShellCore",
+                "OmniWMTestHostIsolation"
             ],
             path: "Tests/OmniWMTests",
             resources: [

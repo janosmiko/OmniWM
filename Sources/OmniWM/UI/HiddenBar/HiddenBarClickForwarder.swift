@@ -96,16 +96,16 @@ final class HiddenBarClickForwarder {
         }
 
         let restorePoint = CGEvent(source: nil)?.location
-        CGWarpMouseCursorPosition(clickPoint)
+        HostEffects.warpCursor(to: clickPoint)
         onCursorWarp?(ScreenCoordinateSpace.toAppKit(point: clickPoint))
         try? await Task.sleep(for: Self.warpSettleDelay)
         if !Task.isCancelled {
-            mouseDown.post(tap: .cghidEventTap)
-            mouseUp.post(tap: .cghidEventTap)
+            HostEffects.post(mouseDown, tap: .cghidEventTap)
+            HostEffects.post(mouseUp, tap: .cghidEventTap)
             try? await Task.sleep(for: Self.cursorRestoreDelay)
         }
         if let restorePoint {
-            CGWarpMouseCursorPosition(restorePoint)
+            HostEffects.warpCursor(to: restorePoint)
             onCursorWarp?(ScreenCoordinateSpace.toAppKit(point: restorePoint))
         }
     }
