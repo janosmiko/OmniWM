@@ -155,11 +155,11 @@ extension WorkspaceManager {
     }
 
     @discardableResult
-    func clearNativeFocusOwner() -> Bool {
+    func clearNativeFocusOwner(preservePendingManagedFocus: Bool = false) -> Bool {
         let changed = applyFocusReconcileEvent(
             .nativeFocusOwnerChanged(
                 owner: .none,
-                preservePendingManagedFocus: false,
+                preservePendingManagedFocus: preservePendingManagedFocus,
                 source: .workspaceManager
             )
         )

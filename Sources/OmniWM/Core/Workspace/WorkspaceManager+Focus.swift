@@ -180,8 +180,9 @@ extension WorkspaceManager {
         ) {
             notifySessionStateChanged(surfaceScope: .border)
         }
+        // The fullscreen app deactivates when the user switches to another window. Keep that window's focus request.
         if clearsNativeFullscreenOwner {
-            _ = clearNativeFocusOwner()
+            _ = clearNativeFocusOwner(preservePendingManagedFocus: true)
         }
     }
 
