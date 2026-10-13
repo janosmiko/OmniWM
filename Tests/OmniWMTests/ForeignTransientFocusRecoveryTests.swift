@@ -349,6 +349,30 @@ final class ForeignTransientFocusRecoveryTests: XCTestCase {
         )
     }
 
+    func testWorkspaceSwitchBackFrontsSuspendedNativeFullscreenWindow() async throws {
+        let fixture = try makeFixture(prefix: "OmniWMFullscreenWorkspaceReturnTests")
+        let controller = fixture.controller
+        let manager = controller.workspaceManager
+        XCTAssertNotNil(manager.workspaceId(for: "2", createIfMissing: true))
+        XCTAssertTrue(manager.markNativeFullscreenSuspended(fixture.mainToken))
+
+        XCTAssertTrue(controller.workspaceNavigationHandler.switchWorkspace(rawWorkspaceID: "2"))
+        await WindowAdmissionTestSupport.drainLayoutRefreshes(controller)
+        fixture.recorder.operations.removeAll()
+
+        XCTAssertTrue(controller.workspaceNavigationHandler.switchWorkspace(rawWorkspaceID: "1"))
+        await WindowAdmissionTestSupport.drainLayoutRefreshes(controller)
+
+        XCTAssertEqual(manager.externalFocusToken, fixture.mainToken)
+        XCTAssertEqual(
+            fixture.recorder.operations,
+            [
+                "focus:\(fixture.mainToken.pid):\(fixture.mainToken.windowId)",
+                "raise"
+            ]
+        )
+    }
+
     private func assertConcreteTargetSuppressesAXWindowCreatedRelayout() async throws {
         let fixture = try makeFixture(prefix: "OmniWMForeignTransientProvisionalRelayoutTests")
         let popupToken = WindowToken(pid: 559_009, windowId: 559_211)

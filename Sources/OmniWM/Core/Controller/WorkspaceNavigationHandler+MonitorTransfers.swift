@@ -114,7 +114,7 @@ extension WorkspaceNavigationHandler {
             reason: .workspaceTransition
         ) { [weak controller] in
             if let focusToken {
-                controller?.focusWindow(focusToken)
+                controller?.focusWorkspaceTarget(focusToken)
             }
         }
     }

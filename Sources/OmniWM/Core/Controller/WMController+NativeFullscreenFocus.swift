@@ -62,6 +62,15 @@ extension WMController {
         )
     }
 
+    // A native fullscreen window lives on its own macOS Space. Only fronting it brings that Space back.
+    func focusWorkspaceTarget(_ token: WindowToken, origin: ManagedFocusOrigin = .keyboardOrProgrammatic) {
+        if let originalToken = AppRevealActions.suspendedNativeFullscreenOriginalToken(for: token, controller: self) {
+            activateNativeFullscreenPlaceholder(originalToken)
+        } else {
+            focusWindow(token, origin: origin)
+        }
+    }
+
     @discardableResult
     func selectNativeFullscreenPlaceholder(_ entry: WindowState) -> Bool {
         let token = entry.token

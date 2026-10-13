@@ -289,7 +289,7 @@ final class WindowActionHandler {
         controller.layoutRefreshController
             .commitWorkspaceTransition(reason: .workspaceTransition) { [weak controller] in
                 if let focusedToken {
-                    controller?.focusWindow(focusedToken, origin: focusOrigin)
+                    controller?.focusWorkspaceTarget(focusedToken, origin: focusOrigin)
                 }
             }
         return true
