@@ -100,6 +100,36 @@ final class WorkspaceAccordionCommandTests: XCTestCase {
         XCTAssertGreaterThan(recorder.raises, 0)
     }
 
+    func testToggleOnFrontsFocusedWindowAboveOverlappingColumns() async throws {
+        final class Recorder {
+            var focusedWindowIds: [UInt32] = []
+            var raises = 0
+        }
+        let recorder = Recorder()
+        let fixture = try makeFixture(
+            windowFocusOperations: WindowFocusOperations(
+                activateApp: { _ in },
+                focusSpecificWindow: { _, windowId, _ in recorder.focusedWindowIds.append(windowId) },
+                raiseWindow: { _ in recorder.raises += 1 }
+            )
+        )
+        defer { fixture.controller.layoutRefreshController.resetState() }
+        let manager = fixture.controller.workspaceManager
+        let first = try XCTUnwrap(fixture.engine.columns(in: fixture.workspaceId).first?.windowNodes.first)
+        _ = manager.commitWorkspaceSelection(
+            nodeId: first.id, focusedToken: first.token, in: fixture.workspaceId, onMonitor: fixture.monitor.id
+        )
+        await WindowAdmissionTestSupport.drainLayoutRefreshes(fixture.controller)
+        recorder.focusedWindowIds = []
+        recorder.raises = 0
+
+        XCTAssertEqual(fixture.controller.commandHandler.performCommand(.workspace(.toggleAccordion)), .executed)
+        await WindowAdmissionTestSupport.drainLayoutRefreshes(fixture.controller)
+
+        XCTAssertEqual(recorder.focusedWindowIds.last, UInt32(first.token.windowId))
+        XCTAssertGreaterThan(recorder.raises, 0)
+    }
+
     func testToggleOffRevealsActiveColumn() throws {
         let fixture = try makeFixture(accordion: true)
         defer { fixture.controller.layoutRefreshController.resetState() }

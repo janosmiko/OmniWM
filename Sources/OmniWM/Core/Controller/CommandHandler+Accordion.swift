@@ -13,7 +13,12 @@ extension CommandHandler {
         configs[index] = configs[index].with(accordion: enabled)
         controller.settings.workspaces.configurations = configs
         controller.niriLayoutHandler.syncAccordion(enabled, in: workspace.id)
-        controller.layoutRefreshController.requestRelayout(reason: .workspaceLayoutToggled)
+        // The columns overlap after this relayout, so the focused window must be on top of them.
+        var postLayout: LayoutRefreshController.PostLayoutAction?
+        if enabled, let token = controller.workspaceManager.preferredFocusToken(in: workspace.id) {
+            postLayout = { [weak controller] in _ = controller?.focusWindow(token) }
+        }
+        controller.niriLayoutHandler.requestLayoutCommandRelayout(in: workspace.id, postLayout: postLayout)
         if let ipcApplicationBridge = controller.ipcApplicationBridge {
             Task {
                 await ipcApplicationBridge.publishEvent(.layoutChanged)
