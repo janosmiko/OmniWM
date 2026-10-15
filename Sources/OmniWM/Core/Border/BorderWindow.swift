@@ -25,7 +25,13 @@ final class BorderWindow {
                 }) ?? NSScreen.main ?? NSScreen.screens.first
                 return (targetScreen?.backingScaleFactor ?? 2.0, targetScreen?.frame ?? .null)
             },
-            orderWindow: { SkyLight.shared.orderWindow($0, relativeTo: $1, order: $2) }
+            orderWindow: { wid, targetWid, order in
+                HostEffects.order(
+                    NSApp.window(withWindowNumber: Int(wid)),
+                    NSWindow.OrderingMode(rawValue: Int(order.rawValue)) ?? .below,
+                    relativeTo: Int(targetWid)
+                )
+            }
         )
     }
 

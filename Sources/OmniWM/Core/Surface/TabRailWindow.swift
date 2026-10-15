@@ -177,7 +177,7 @@ final class TabRailWindow: NSPanel {
         orderFront(nil)
         syncSurfaceRegistration()
         if let targetWid = currentInfo.activeWindowId {
-            SkyLight.shared.orderWindow(UInt32(windowNumber), relativeTo: UInt32(targetWid))
+            HostEffects.order(self, .above, relativeTo: targetWid)
         }
     }
 
