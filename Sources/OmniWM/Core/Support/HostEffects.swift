@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (C) 2026 BarutSRB — https://github.com/OmniNull/OmniWM
 
-import ApplicationServices
+import AppKit
 
 enum HostEffects {
     nonisolated(unsafe) static var isEnabled = true
@@ -22,5 +22,11 @@ enum HostEffects {
 
     static func performAXAction(_ element: AXUIElement, _ action: CFString) -> AXError {
         isEnabled ? AXUIElementPerformAction(element, action) : .cannotComplete
+    }
+
+    // macOS 27.0.1 SkyLight ignores an order relative to another app's window. AppKit's order works.
+    @MainActor
+    static func order(_ window: NSWindow?, _ mode: NSWindow.OrderingMode, relativeTo windowNumber: Int) {
+        if isEnabled { window?.order(mode, relativeTo: windowNumber) }
     }
 }
