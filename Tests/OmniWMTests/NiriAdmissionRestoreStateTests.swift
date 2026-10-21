@@ -859,6 +859,17 @@ final class NiriAdmissionRestoreStateTests: XCTestCase {
                 frame: nil
             )
         )
+        let live = NiriContainerSizingState(
+            width: .proportion(0.88),
+            presetWidthIndex: nil,
+            isFullWidth: false,
+            savedWidth: nil,
+            hasManualSingleWindowWidthOverride: true,
+            height: .proportion(0.8),
+            isFullHeight: false,
+            savedHeight: .fixed(700),
+            hasManualSingleWindowHeightOverride: true
+        )
         let expected = NiriContainerSizingState(
             width: .proportion(0.88),
             presetWidthIndex: nil,
@@ -868,7 +879,7 @@ final class NiriAdmissionRestoreStateTests: XCTestCase {
             height: .proportion(0.8),
             isFullHeight: false,
             savedHeight: .fixed(700),
-            hasManualSingleWindowHeightOverride: true
+            hasManualSingleWindowHeightOverride: false
         )
         let expectedWindowState = PersistedNiriWindowState(
             sizingMode: .normal,
@@ -885,7 +896,7 @@ final class NiriAdmissionRestoreStateTests: XCTestCase {
                 XCTFail("Expected Niri column")
                 return
             }
-            Self.apply(expected, to: column)
+            Self.apply(live, to: column)
             addedNode.sizingMode = expectedWindowState.sizingMode
             addedNode.height = expectedWindowState.height
             addedNode.savedHeight = expectedWindowState.savedHeight

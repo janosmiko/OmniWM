@@ -63,6 +63,7 @@ extension NiriLayoutEngine {
         assertSanctionedMutation()
         let workspaceState = ensureState(for: workspaceId)
         removeStaleNodes(for: transferred.windows, in: workspaceId)
+        let wasSingleWindow = singleWindowLayoutContext(in: workspaceId) != nil
         let root = workspaceState.root
         let column: NiriContainer
         if let claimed = claimEmptyColumnIfWorkspaceEmpty(in: root) {
@@ -86,6 +87,7 @@ extension NiriLayoutEngine {
         }
         column.setActiveTileIdx(transferred.activeIndex)
         updateTabbedColumnVisibility(column: column)
+        clearManualSpanOverridesOnSingleWindowEntry(in: workspaceId, wasSingleWindow: wasSingleWindow)
         state.selectedNodeId = transferred.activeWindow.id
     }
 

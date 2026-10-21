@@ -121,7 +121,16 @@ final class NiriInitialContainerPrimarySpanTests: XCTestCase {
         )
         let column = try XCTUnwrap(engine.column(of: window))
 
-        XCTAssertEqual(engine.containerSizingState(for: token, in: workspaceId), state)
+        XCTAssertEqual(
+            engine.containerSizingState(for: token, in: workspaceId),
+            NiriContainerSizingState(
+                width: .fixed(640),
+                presetWidthIndex: nil,
+                isFullWidth: true,
+                savedWidth: .proportion(0.5),
+                hasManualSingleWindowWidthOverride: false
+            )
+        )
         XCTAssertEqual(column.cachedWidth, 0)
         XCTAssertNil(column.widthAnimation)
         XCTAssertNil(column.targetWidth)

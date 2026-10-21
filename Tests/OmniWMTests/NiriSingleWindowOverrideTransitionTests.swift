@@ -135,7 +135,7 @@ final class NiriSingleWindowOverrideTransitionTests: NiriInteractionTestCase {
         XCTAssertEqual(layout(fixture.engine, in: fixture.workspaceId)[fixture.survivor.token], before)
     }
 
-    func testWindowTransferRestoresSourceFitAndPreservesDestinationSizingAndIdentity() throws {
+    func testWindowTransferRestoresSourceFitAndFitsAloneDestination() throws {
         let fixture = try makePair()
         let neighborColumn = try XCTUnwrap(fixture.engine.column(of: fixture.neighbor))
         resize(fixture.column, in: fixture)
@@ -159,9 +159,80 @@ final class NiriSingleWindowOverrideTransitionTests: NiriInteractionTestCase {
         XCTAssertTrue(fixture.engine.findNode(for: fixture.neighbor.token, in: targetWorkspace) === fixture.neighbor)
         let targetColumn = try XCTUnwrap(fixture.engine.column(of: fixture.neighbor))
         XCTAssertEqual(targetColumn.width, .fixed(800))
+        XCTAssertFalse(targetColumn.hasManualSingleWindowWidthOverride)
+        XCTAssertEqual(layout(fixture.engine, in: targetWorkspace)[fixture.neighbor.token], customFrame)
+    }
+
+    func testWindowTransferIntoOccupiedWorkspaceKeepsManualWidth() throws {
+        let fixture = try makePair()
+        let neighborColumn = try XCTUnwrap(fixture.engine.column(of: fixture.neighbor))
+        resize(neighborColumn, pixels: 800, in: fixture)
+        let targetWorkspace = WorkspaceDescriptor.ID()
+        _ = addWindow(fixture.engine, pid: 6_815, to: targetWorkspace)
+        var sourceState = ViewportState()
+        var targetState = ViewportState()
+
+        _ = fixture.engine.moveWindowToWorkspace(
+            fixture.neighbor,
+            from: fixture.workspaceId,
+            to: targetWorkspace,
+            sourceState: &sourceState,
+            targetState: &targetState
+        )
+
+        let targetColumn = try XCTUnwrap(fixture.engine.column(of: fixture.neighbor))
         XCTAssertTrue(targetColumn.hasManualSingleWindowWidthOverride)
-        let targetFrame = try XCTUnwrap(layout(fixture.engine, in: targetWorkspace)[fixture.neighbor.token])
-        XCTAssertEqual(targetFrame.width, 800, accuracy: 0.001)
+    }
+
+    func testTransferredColumnAttachFitsAloneDestination() throws {
+        let fixture = try makePair()
+        let neighborColumn = try XCTUnwrap(fixture.engine.column(of: fixture.neighbor))
+        resize(neighborColumn, pixels: 800, in: fixture)
+        let targetWorkspace = WorkspaceDescriptor.ID()
+        var sourceState = ViewportState()
+        var targetState = ViewportState()
+        let sizing = try XCTUnwrap(fixture.engine.detachWindowForTransfer(
+            fixture.neighbor,
+            from: fixture.workspaceId,
+            sourceState: &sourceState
+        ))
+        XCTAssertTrue(sizing.hasManualSingleWindowWidthOverride)
+
+        fixture.engine.attachTransferredColumn(
+            NiriTransferredColumn(windows: [fixture.neighbor], activeIndex: 0, sizing: sizing),
+            atDurableColumnIndex: nil,
+            in: targetWorkspace,
+            state: &targetState
+        )
+
+        let targetColumn = try XCTUnwrap(fixture.engine.column(of: fixture.neighbor))
+        XCTAssertFalse(targetColumn.hasManualSingleWindowWidthOverride)
+        XCTAssertEqual(layout(fixture.engine, in: targetWorkspace)[fixture.neighbor.token], customFrame)
+    }
+
+    func testRestoredManualWidthFitsAloneWorkspace() throws {
+        let engine = NiriLayoutEngine()
+        engine.singleWindowFit = customFit
+        let workspaceId = WorkspaceDescriptor.ID()
+        let restored = NiriContainerSizingState(
+            width: .proportion(0.4),
+            presetWidthIndex: nil,
+            isFullWidth: false,
+            savedWidth: nil,
+            hasManualSingleWindowWidthOverride: true
+        )
+
+        let window = engine.addWindow(
+            token: WindowToken(pid: 6_816, windowId: 1),
+            to: workspaceId,
+            afterSelection: nil,
+            containerSizingState: restored
+        )
+
+        let column = try XCTUnwrap(engine.column(of: window))
+        XCTAssertEqual(column.width, .proportion(0.4))
+        XCTAssertFalse(column.hasManualSingleWindowWidthOverride)
+        XCTAssertEqual(layout(engine, in: workspaceId)[window.token], customFrame)
     }
 
     func testColumnTransferRestoresSourceFitAndPreservesDestinationColumnIdentity() throws {
@@ -188,9 +259,8 @@ final class NiriSingleWindowOverrideTransitionTests: NiriInteractionTestCase {
         XCTAssertTrue(fixture.engine.findNode(for: fixture.neighbor.token, in: targetWorkspace) === fixture.neighbor)
         XCTAssertTrue(fixture.engine.columns(in: targetWorkspace).first === neighborColumn)
         XCTAssertEqual(neighborColumn.width, .fixed(800))
-        XCTAssertTrue(neighborColumn.hasManualSingleWindowWidthOverride)
-        let targetFrame = try XCTUnwrap(layout(fixture.engine, in: targetWorkspace)[fixture.neighbor.token])
-        XCTAssertEqual(targetFrame.width, 800, accuracy: 0.001)
+        XCTAssertFalse(neighborColumn.hasManualSingleWindowWidthOverride)
+        XCTAssertEqual(layout(fixture.engine, in: targetWorkspace)[fixture.neighbor.token], customFrame)
     }
 
     func testCustomFitAfterRemovalHonorsSurvivorMinimumSize() throws {

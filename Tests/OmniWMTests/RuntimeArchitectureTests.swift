@@ -7232,16 +7232,14 @@ final class RuntimeArchitectureTests: XCTestCase {
         let movedColumn = try XCTUnwrap(engine.findColumn(containing: movedNode, in: rightWs))
         XCTAssertEqual(controller.workspaceManager.niriViewportState(for: rightWs).selectedNodeId, movedNode.id)
         XCTAssertEqual(movedColumn.width, .proportion(0.5))
-        XCTAssertTrue(movedColumn.hasManualSingleWindowWidthOverride)
+        XCTAssertFalse(movedColumn.hasManualSingleWindowWidthOverride)
 
         let plans = controller.workspaceManager.withEngineMutationScope {
             controller.niriLayoutHandler.layoutWithNiriEngine(activeWorkspaces: [rightWs])
         }
         let targetWorkingFrame = controller.insetWorkingFrame(for: rightMonitor)
-        let gap = CGFloat(controller.workspaceManager.gaps)
-        let expectedTargetWidth = (targetWorkingFrame.width - gap) * 0.5 - gap
         XCTAssertFalse(plans.isEmpty)
-        XCTAssertEqual(try XCTUnwrap(movedNode.renderedFrame?.width), expectedTargetWidth, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(movedNode.renderedFrame?.width), targetWorkingFrame.width, accuracy: 0.001)
     }
 
     @MainActor

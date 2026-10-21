@@ -61,12 +61,14 @@ extension NiriLayoutEngine {
             return existing
         }
         let root = state.root
+        let wasSingleWindow = singleWindowLayoutContext(in: workspaceId) != nil
 
         if let existingColumn = claimEmptyColumnIfWorkspaceEmpty(in: root) {
             initializeNewContainerSizing(existingColumn, in: workspaceId, initialState: containerSizingState)
             let windowNode = NiriWindow(token: token)
             existingColumn.appendChild(windowNode)
             state.index(windowNode)
+            clearManualSpanOverridesOnSingleWindowEntry(in: workspaceId, wasSingleWindow: wasSingleWindow)
             return windowNode
         }
 
@@ -96,6 +98,7 @@ extension NiriLayoutEngine {
         newColumn.appendChild(windowNode)
 
         state.index(windowNode)
+        clearManualSpanOverridesOnSingleWindowEntry(in: workspaceId, wasSingleWindow: wasSingleWindow)
 
         return windowNode
     }

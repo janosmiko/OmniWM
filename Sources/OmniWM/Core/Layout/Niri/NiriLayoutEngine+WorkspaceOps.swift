@@ -38,6 +38,7 @@ extension NiriLayoutEngine {
             return nil
         }
 
+        let targetWasSingleWindow = singleWindowLayoutContext(in: targetWorkspaceId) != nil
         let targetColumn: NiriContainer
         if let existingColumn = claimEmptyColumnIfWorkspaceEmpty(in: targetWorkspaceState.root) {
             targetColumn = existingColumn
@@ -49,6 +50,7 @@ extension NiriLayoutEngine {
         initializeNewContainerSizing(targetColumn, in: targetWorkspaceId, initialState: sizing)
         targetColumn.appendChild(window)
         targetWorkspaceState.index(window)
+        clearManualSpanOverridesOnSingleWindowEntry(in: targetWorkspaceId, wasSingleWindow: targetWasSingleWindow)
 
         targetState.selectedNodeId = window.id
 
@@ -77,6 +79,7 @@ extension NiriLayoutEngine {
         }
 
         let wasSingleWindow = singleWindowLayoutContext(in: sourceWorkspaceId) != nil
+        let targetWasSingleWindow = singleWindowLayoutContext(in: targetWorkspaceId) != nil
         let targetWorkspaceState = ensureState(for: targetWorkspaceId)
         let targetRoot = targetWorkspaceState.root
         let movedWindows = column.windowNodes
@@ -113,6 +116,7 @@ extension NiriLayoutEngine {
             targetWorkspaceState.index(window)
         }
         clearManualSpanOverridesOnSingleWindowEntry(in: sourceWorkspaceId, wasSingleWindow: wasSingleWindow)
+        clearManualSpanOverridesOnSingleWindowEntry(in: targetWorkspaceId, wasSingleWindow: targetWasSingleWindow)
 
         sourceState.selectedNodeId = fallbackSelection
 
