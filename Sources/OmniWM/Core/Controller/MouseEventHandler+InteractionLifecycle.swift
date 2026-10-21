@@ -160,28 +160,33 @@ extension MouseEventHandler {
             return
         }
         let geometry = controller.niriInteractionGeometry(for: monitor)
-        let motion = controller.motionPolicy.snapshot()
+        let context = NiriInteractionContext(
+            workspaceId: workspaceId,
+            motion: controller.motionPolicy.snapshot(),
+            workingFrame: geometry.workingFrame,
+            gaps: geometry.innerGap,
+            orientation: resize.orientation
+        )
         controller.workspaceManager.withNiriViewportState(for: workspaceId) { viewportState in
-            engine.interactiveResizeEnd(
-                motion: motion,
-                state: &viewportState,
-                workingFrame: geometry.workingFrame,
-                gaps: geometry.innerGap
-            )
-            guard controller.settings.niri.fillScreenOnResize else { return }
-            engine.fillScreenAfterInteractiveResize(
-                resize,
-                context: .init(
-                    workspaceId: workspaceId,
-                    motion: motion,
-                    workingFrame: geometry.workingFrame,
-                    gaps: geometry.innerGap,
-                    orientation: resize.orientation
-                ),
-                state: &viewportState
-            )
+            endNiriResize(resize, engine: engine, context: context, state: &viewportState)
         }
         settleNiriResize(resizedToken, in: workspaceId)
+    }
+
+    func endNiriResize(
+        _ resize: InteractiveResize,
+        engine: NiriLayoutEngine,
+        context: NiriInteractionContext,
+        state: inout ViewportState
+    ) {
+        engine.interactiveResizeEnd(
+            motion: context.motion,
+            state: &state,
+            workingFrame: context.workingFrame,
+            gaps: context.gaps
+        )
+        guard controller?.settings.niri.fillScreenOnResize == true else { return }
+        engine.fillScreenAfterInteractiveResize(resize, context: context, state: &state)
     }
 
     func settleNiriResize(_ token: WindowToken, in workspaceId: WorkspaceDescriptor.ID) {
