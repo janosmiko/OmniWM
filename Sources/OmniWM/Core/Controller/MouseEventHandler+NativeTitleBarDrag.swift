@@ -56,7 +56,7 @@ extension MouseEventHandler {
         controller.axManager.beginNativeTitleBarDrag(for: drag.token)
     }
 
-    func finishNativeTitleBarDragIfNeeded(button: MouseButton) {
+    func finishNativeTitleBarDragIfNeeded(button: MouseButton, at location: CGPoint? = nil) {
         guard button == .left else { return }
         markNativeTitleBarDragFallbackReleased(button: button)
         if state.nativeTitleBarDrag == nil,
@@ -90,9 +90,12 @@ extension MouseEventHandler {
             discardNativeTitleBarDragState()
             return
         }
-
         let observedFrame = terminalNativeWindowFrame(for: entry)
         let lastAppliedFrame = controller.axManager.lastAppliedFrame(for: entry.windowId)
+        if transferNativeTitleBarDrop(of: entry, at: location, applied: lastAppliedFrame, observed: observedFrame) {
+            return
+        }
+
         let observedDisplacement = Self.nativeTitleBarWasDisplaced(
             observedFrame: observedFrame, lastAppliedFrame: lastAppliedFrame,
             receivedFrameChange: drag.receivedFrameChange
@@ -103,6 +106,30 @@ extension MouseEventHandler {
             observedFrame: observedFrame,
             needsCorrection: excludedFrameWrite || observedDisplacement
         )
+    }
+
+    private func transferNativeTitleBarDrop(
+        of entry: WindowState, at location: CGPoint?, applied: CGRect?, observed: CGRect?
+    ) -> Bool {
+        guard let controller, let location,
+              !Self.isNativeEdgeResize(from: applied, to: observed),
+              !controller.isOverviewOpen()
+        else { return false }
+        let manager = controller.workspaceManager
+        guard let monitor = manager.monitors.first(where: { $0.frame.contains(location) }),
+              monitor.id != manager.monitorId(for: entry.workspaceId),
+              let workspaceId = manager.activeWorkspace(on: monitor.id)?.id,
+              controller.workspaceNavigationHandler.moveWindowsFromBar([entry.token], toWorkspaceId: workspaceId)
+        else { return false }
+        state.nativeTitleBarDrag = nil
+        controller.axManager.invalidateAppliedFrame(for: entry.windowId)
+        controller.axManager.forceApplyNextFrame(for: entry.windowId)
+        return true
+    }
+
+    private static func isNativeEdgeResize(from applied: CGRect?, to observed: CGRect?) -> Bool {
+        guard let applied, let observed else { return false }
+        return !nativeResizeEdges(from: applied, to: observed).isEmpty
     }
 
     private func settleReleasedNativeTitleBarDrag(

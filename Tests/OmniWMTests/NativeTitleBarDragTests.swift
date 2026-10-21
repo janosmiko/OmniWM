@@ -900,6 +900,96 @@ final class NativeTitleBarDragTests: NiriInteractionTestCase {
         XCTAssertNil(fixture.controller.axManager.lastAppliedFrame(for: fixture.token.windowId))
     }
 
+    func testDropOnAnotherDisplayMovesWindowToThatDisplaysActiveWorkspace() throws {
+        let fixture = try makeFixture(pid: 561_090)
+        let destinationWorkspaceId = try addSecondDisplay(fixture)
+        let dropPoint = secondDisplayFrame.center
+        fixture.handler.nativeWindowFrameProvider = { _ in
+            CGRect(origin: dropPoint, size: fixture.frame.size)
+        }
+
+        beginPlainDrag(fixture)
+        XCTAssertTrue(fixture.handler.handleNativeTitleBarDragFrameChanged(for: fixture.entry))
+        fixture.handler.dispatchMouseUp(at: dropPoint)
+
+        XCTAssertEqual(fixture.entry.workspaceId, destinationWorkspaceId)
+        XCTAssertNil(fixture.handler.state.nativeTitleBarDrag)
+        XCTAssertFalse(fixture.controller.axManager.isNativeTitleBarDragActive(for: fixture.token))
+    }
+
+    func testDropOnSameDisplayKeepsWindowOnItsWorkspace() throws {
+        let fixture = try makeFixture(pid: 561_091)
+        _ = try addSecondDisplay(fixture)
+        let displacedFrame = fixture.frame.offsetBy(dx: 40, dy: 0)
+        fixture.handler.nativeWindowFrameProvider = { _ in displacedFrame }
+
+        beginPlainDrag(fixture)
+        XCTAssertTrue(fixture.handler.handleNativeTitleBarDragFrameChanged(for: fixture.entry))
+        fixture.handler.dispatchMouseUp(at: displacedFrame.center)
+
+        XCTAssertEqual(fixture.entry.workspaceId, fixture.workspaceId)
+        if case .awaitingCorrection? = fixture.handler.state.nativeTitleBarDrag?.phase {
+        } else {
+            XCTFail("a drop on the source display must snap back to the tile")
+        }
+    }
+
+    func testEdgeResizeReleasedOnAnotherDisplayKeepsWindowOnItsWorkspace() throws {
+        let fixture = try makeFixture(pid: 561_092)
+        _ = try addSecondDisplay(fixture)
+        let edge = CGPoint(x: fixture.frame.maxX - 2, y: fixture.frame.midY)
+        let dropPoint = secondDisplayFrame.center
+        fixture.handler.nativeWindowFrameProvider = { _ in
+            CGRect(
+                origin: fixture.frame.origin,
+                size: CGSize(width: dropPoint.x - fixture.frame.minX, height: fixture.frame.height)
+            )
+        }
+        fixture.handler.pressedMouseButtonsProvider = { MouseEventHandler.MouseButton.left.pressedMask }
+        XCTAssertFalse(
+            fixture.handler.dispatchMouseDown(
+                at: edge,
+                modifiers: [],
+                windowIdUnderPointer: fixture.token.windowId
+            )
+        )
+        fixture.handler.dispatchMouseDragged(at: CGPoint(x: edge.x + 5, y: edge.y))
+        XCTAssertTrue(fixture.handler.handleNativeTitleBarDragFrameChanged(for: fixture.entry))
+        fixture.handler.dispatchMouseUp(at: dropPoint)
+
+        XCTAssertEqual(fixture.entry.workspaceId, fixture.workspaceId)
+    }
+
+    private var secondDisplayFrame: CGRect {
+        CGRect(x: workingFrame.maxX, y: 0, width: 1200, height: 900)
+    }
+
+    private func addSecondDisplay(_ fixture: Fixture) throws -> WorkspaceDescriptor.ID {
+        let manager = fixture.controller.workspaceManager
+        let source = try XCTUnwrap(manager.monitors.first)
+        let destination = Monitor(
+            id: .init(displayId: 56_102),
+            displayId: 56_102,
+            frame: secondDisplayFrame,
+            visibleFrame: secondDisplayFrame,
+            hasNotch: false,
+            name: "Native Title Bar Drop Target"
+        )
+        fixture.controller.settings.workspaces.configurations.append(
+            WorkspaceConfiguration(
+                name: "2",
+                monitorAssignment: .specificDisplay(OutputId(from: destination)),
+                layoutType: .niri
+            )
+        )
+        manager.applySettings()
+        manager.applyMonitorConfigurationChange([source, destination])
+        let workspaceId = try XCTUnwrap(manager.workspaceId(for: "2", createIfMissing: true))
+        XCTAssertTrue(manager.setActiveWorkspace(workspaceId, on: destination.id, updateInteractionMonitor: false))
+        XCTAssertEqual(manager.monitorId(for: fixture.workspaceId), source.id)
+        return workspaceId
+    }
+
     private func beginPlainDrag(_ fixture: Fixture) {
         fixture.handler.pressedMouseButtonsProvider = { MouseEventHandler.MouseButton.left.pressedMask }
         XCTAssertFalse(

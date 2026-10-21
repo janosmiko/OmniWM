@@ -128,7 +128,7 @@ extension MouseEventHandler {
             return
         }
         markNativeTitleBarDragFallbackReleased(button: button)
-        finishNativeTitleBarDragIfNeeded(button: button)
+        finishNativeTitleBarDragIfNeeded(button: button, at: location)
         if !isCapturedInteraction(button), shouldBlockOwnWindowInput(at: location) {
             cancelActiveMouseInteraction()
             return
