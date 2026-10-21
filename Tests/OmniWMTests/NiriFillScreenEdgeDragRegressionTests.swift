@@ -388,7 +388,7 @@ final class NiriFillScreenEdgeDragRegressionTests: XCTestCase {
         XCTAssertTrue(fixture.handler.handleNativeTitleBarDragFrameChanged(for: fixture.entry(token)))
         if log { print("[edge-drag] before up: drag=\(String(describing: fixture.handler.state.nativeTitleBarDrag)) "
                 + "applied=\(String(describing: fixture.controller.axManager.lastAppliedFrame(for: token.windowId))) "
-                + "observed=\(observed) pressLoc=\(String(describing: fixture.handler.state.nativeResizeHandlePressLocation)) "
+                + "observed=\(observed) "
                 + "scroll=\(fixture.controller.niriLayoutHandler.hasScrollAnimation(for: fixture.workspaceId))") }
         fixture.handler.pressedMouseButtonsProvider = { 0 }
         fixture.handler.dispatchMouseUp(at: CGPoint(x: press.x + delta, y: press.y))
@@ -507,6 +507,7 @@ final class NiriFillScreenEdgeDragRegressionTests: XCTestCase {
         settings.gaps.outerGapTop = 36
         settings.gaps.outerGapBottom = 4
         settings.gestures.windowResizeEnabled = false
+        settings.gestures.adoptNativeResize = true
         settings.niri.fillScreenOnResize = true
         settings.niri.edgeGaps = false
         settings.niri.visibleContainerCount = 2

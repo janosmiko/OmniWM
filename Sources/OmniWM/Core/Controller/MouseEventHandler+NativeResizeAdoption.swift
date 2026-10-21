@@ -219,16 +219,11 @@ extension MouseEventHandler {
             monitorFrame: context.workingFrame,
             gaps: LayoutGaps(horizontal: context.gaps, vertical: context.gaps),
             viewportState: { $0(&state) }
-        ) else {
+        ), let resize = engine.interactiveResize else {
             engine.clearInteractiveResize()
             return false
         }
-        engine.interactiveResizeEnd(
-            motion: context.motion,
-            state: &state,
-            workingFrame: context.workingFrame,
-            gaps: context.gaps
-        )
+        endNiriResize(resize, engine: engine, context: context, state: &state)
         return true
     }
 
