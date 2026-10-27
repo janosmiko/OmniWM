@@ -193,4 +193,64 @@ final class WindowSwitcherControllerTests: XCTestCase {
         if let tile = view as? WindowSwitcherTile { return [tile] }
         return view.subviews.flatMap { tiles(in: $0) }
     }
+
+    func testScopeSelectsWorkspacesByMonitor() throws {
+        let controller = WindowAdmissionTestSupport.controller(
+            prefix: "OmniWMWindowSwitcherControllerTests",
+            ownedWindowRegistry: OwnedWindowRegistry()
+        )
+        let manager = controller.workspaceManager
+        let main = Monitor(
+            id: .init(displayId: 92_001),
+            displayId: 92_001,
+            frame: CGRect(x: 0, y: 0, width: 1440, height: 900),
+            visibleFrame: CGRect(x: 0, y: 0, width: 1440, height: 860),
+            hasNotch: false,
+            name: "Switcher Main"
+        )
+        let other = Monitor(
+            id: .init(displayId: 92_002),
+            displayId: 92_002,
+            frame: CGRect(x: 1440, y: 0, width: 1440, height: 900),
+            visibleFrame: CGRect(x: 1440, y: 0, width: 1440, height: 860),
+            hasNotch: false,
+            name: "Switcher Other"
+        )
+        controller.settings.workspaces.configurations = [
+            WorkspaceConfiguration(name: "1", monitorAssignment: .main, layoutType: .niri),
+            WorkspaceConfiguration(name: "2", monitorAssignment: .main, layoutType: .niri),
+            WorkspaceConfiguration(
+                name: "3",
+                monitorAssignment: .specificDisplay(OutputId(from: other)),
+                layoutType: .niri
+            )
+        ]
+        manager.applyMonitorConfigurationChange([main, other])
+        manager.applySettings()
+        let one = try XCTUnwrap(manager.workspaceId(for: "1", createIfMissing: true))
+        let two = try XCTUnwrap(manager.workspaceId(for: "2", createIfMissing: true))
+        let three = try XCTUnwrap(manager.workspaceId(for: "3", createIfMissing: true))
+        manager.assignWorkspaceToMonitor(one, monitorId: main.id)
+        manager.assignWorkspaceToMonitor(two, monitorId: main.id)
+        manager.assignWorkspaceToMonitor(three, monitorId: other.id)
+        XCTAssertTrue(manager.setActiveWorkspace(one, on: main.id))
+        XCTAssertEqual(manager.activeWorkspace(on: main.id)?.id, one)
+
+        func ids(_ scope: WindowSwitcherScope, monitor: Monitor?) -> Set<WorkspaceDescriptor.ID> {
+            Set(WindowSwitcherController.workspaces(
+                in: scope, manager: manager, activeWorkspaceId: one, monitorId: monitor?.id
+            ).map(\.id))
+        }
+        XCTAssertEqual(ids(.currentMonitor, monitor: main), [one, two])
+        XCTAssertEqual(ids(.currentMonitor, monitor: nil), [])
+        XCTAssertEqual(ids(.currentMonitor, monitor: other), [three])
+        XCTAssertEqual(ids(.activeWorkspace, monitor: main), [one])
+        XCTAssertEqual(ids(.allWorkspaces, monitor: main), [one, two, three])
+    }
+
+    func testScopeToggleCyclesThroughEveryScope() {
+        XCTAssertEqual(WindowSwitcherScope.activeWorkspace.next, .currentMonitor)
+        XCTAssertEqual(WindowSwitcherScope.currentMonitor.next, .allWorkspaces)
+        XCTAssertEqual(WindowSwitcherScope.allWorkspaces.next, .activeWorkspace)
+    }
 }

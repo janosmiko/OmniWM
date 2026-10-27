@@ -4,12 +4,22 @@
 enum WindowSwitcherScope: String, Codable, CaseIterable, Sendable {
     case allWorkspaces
     case activeWorkspace
+    case currentMonitor
+
+    var next: WindowSwitcherScope {
+        switch self {
+        case .activeWorkspace: .currentMonitor
+        case .currentMonitor: .allWorkspaces
+        case .allWorkspaces: .activeWorkspace
+        }
+    }
 }
 
 enum WindowSwitcherShortcutScope: String, Codable, CaseIterable, Sendable {
     case disabled
     case remembered
     case activeWorkspace
+    case currentMonitor
     case allWorkspaces
 
     var initialScope: WindowSwitcherScope? {
@@ -17,6 +27,7 @@ enum WindowSwitcherShortcutScope: String, Codable, CaseIterable, Sendable {
         case .disabled,
              .remembered: nil
         case .activeWorkspace: .activeWorkspace
+        case .currentMonitor: .currentMonitor
         case .allWorkspaces: .allWorkspaces
         }
     }

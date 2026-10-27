@@ -57,6 +57,7 @@ struct WindowSwitcherSettingsTab: View {
             Picker("Remembered Scope", selection: Bindable(settings.windowSwitcher).scope) {
                 Text("All Workspaces").tag(WindowSwitcherScope.allWorkspaces)
                 Text("Active Workspace").tag(WindowSwitcherScope.activeWorkspace)
+                Text("Current Monitor").tag(WindowSwitcherScope.currentMonitor)
             }
         }
     }
@@ -67,6 +68,7 @@ struct WindowSwitcherSettingsTab: View {
     ) -> some View {
         Picker(title, selection: selection) {
             Text("Active Workspace").tag(WindowSwitcherShortcutScope.activeWorkspace)
+            Text("Current Monitor").tag(WindowSwitcherShortcutScope.currentMonitor)
             Text("All Workspaces").tag(WindowSwitcherShortcutScope.allWorkspaces)
             Text("Last Used Scope").tag(WindowSwitcherShortcutScope.remembered)
             Text("Disabled").tag(WindowSwitcherShortcutScope.disabled)

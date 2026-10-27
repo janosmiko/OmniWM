@@ -139,6 +139,15 @@ final class WindowSwitcherInputTests: XCTestCase {
         XCTAssertEqual(key(&input, kVK_Tab).action, .begin(reverse: false, scope: .activeWorkspace))
     }
 
+    func testShortcutCanOpenCurrentMonitorScope() {
+        var input = WindowSwitcherInput()
+        input.shortcuts = WindowSwitcherShortcuts(commandTab: .disabled, optionTab: .currentMonitor)
+        XCTAssertEqual(
+            key(&input, kVK_Tab, flags: [.maskAlternate]).action,
+            .begin(reverse: false, scope: .currentMonitor)
+        )
+    }
+
     func testOptionOnlyConfigurationLeavesCommandTabToMacOS() {
         var input = WindowSwitcherInput()
         input.shortcuts = WindowSwitcherShortcuts(commandTab: .disabled, optionTab: .activeWorkspace)

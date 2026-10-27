@@ -3819,6 +3819,7 @@
     "Disabled" : {},
     "All Workspaces" : {},
     "Active Workspace" : {},
+    "Current Monitor" : {},
     "Show Switcher Footer" : {},
     "Hold Command or Option and press Tab to cycle windows. Shift reverses, release selects, and Escape cancels." : {},
     "Each shortcut opens its assigned workspace scope. Last Used Scope remembers your choice." : {},

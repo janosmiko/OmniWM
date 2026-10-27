@@ -203,9 +203,13 @@ final class WindowSwitcherPanel: NSPanel {
     }
 
     private func layoutFooter(content: Content, selectedIndex: Int, width: CGFloat) {
+        let title = switch content.scope {
+        case .allWorkspaces: String(localized: "All Workspaces")
+        case .activeWorkspace: String(localized: "Active Workspace")
+        case .currentMonitor: String(localized: "Current Monitor")
+        }
         let scopeButton = NSButton(
-            title: content.scope == .allWorkspaces
-                ? String(localized: "All Workspaces") : String(localized: "Active Workspace"),
+            title: title,
             target: self,
             action: #selector(toggleScope)
         )

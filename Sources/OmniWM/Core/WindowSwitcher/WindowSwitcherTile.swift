@@ -88,7 +88,7 @@ final class WindowSwitcherTile: NSView {
         let icon = NSImageView(frame: CGRect(x: 8, y: 6, width: 16, height: 16))
         icon.image = item.icon
         addSubview(icon)
-        let badgeWidth = scope == .allWorkspaces ? layoutWorkspaceBadge(item.workspaceName, size: size) : 0
+        let badgeWidth = scope != .activeWorkspace ? layoutWorkspaceBadge(item.workspaceName, size: size) : 0
         let title = NSTextField(labelWithString: WindowSwitcherTitle.label(appName: item.appName, title: item.title))
         title.font = .systemFont(ofSize: 12, weight: .medium)
         title.textColor = .white
