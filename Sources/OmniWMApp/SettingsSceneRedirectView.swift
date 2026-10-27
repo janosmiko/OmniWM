@@ -55,8 +55,11 @@ struct SettingsSceneRedirectView: View {
     }
 
     private func redirectIfPossible() {
+        // onAppear can run before the view has a window. A redirect then cannot close the window,
+        // and the stale window takes cmd+, and key focus from the real Settings window.
         guard !didRedirect,
-              bootstrap.isReady
+              bootstrap.isReady,
+              let window
         else { return }
 
         didRedirect = true
