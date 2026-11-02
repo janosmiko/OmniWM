@@ -3,6 +3,7 @@
 
 import AppKit
 @testable import OmniWM
+import OmniWMTestHostIsolation
 import XCTest
 
 @MainActor
@@ -220,6 +221,10 @@ final class ShellFocusTransferTests: XCTestCase {
     }
 
     func testNativeEditorRemainsFirstResponderAndEscapeBypassesPanelDismissal() throws {
+        try XCTSkipIf(
+            OmniWMTestHostIsIsolated(),
+            "The isolated test host fakes key windows, so AppKit keeps no first responder"
+        )
         let host = host(FocusPolicyEngine())
         let fixture = try Fixture(input: true)
         fixture.connect(host)

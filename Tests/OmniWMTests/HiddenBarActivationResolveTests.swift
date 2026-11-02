@@ -5,6 +5,7 @@ import AppKit
 import CoreGraphics
 import Foundation
 @testable import OmniWM
+import OmniWMTestHostIsolation
 import XCTest
 
 @MainActor
@@ -355,6 +356,7 @@ final class HiddenBarActivationResolveTests: XCTestCase {
     }
 
     func testAnItemUnderOneOfOurWindowsIsPressedInsteadOfClicked() async throws {
+        try XCTSkipIf(OmniWMTestHostIsIsolated(), "The isolated test host keeps the panel off the window server")
         let panel = NSPanel(
             contentRect: CGRect(x: 200, y: 200, width: 120, height: 40),
             styleMask: [.borderless, .nonactivatingPanel],
