@@ -122,6 +122,21 @@ final class NiriSingleWindowOverrideTransitionTests: NiriInteractionTestCase {
         XCTAssertEqual(layout(engine, in: workspaceId)[survivor.token], customFrame)
     }
 
+    func testExcludingNeighborRestoresCustomFitBeforeItsRemoval() throws {
+        let fixture = try makePair()
+        resize(fixture.column, in: fixture)
+
+        fixture.engine.setProjectionExclusions([fixture.neighbor.token], in: fixture.workspaceId)
+
+        XCTAssertFalse(fixture.column.hasManualSingleWindowWidthOverride)
+        XCTAssertEqual(layout(fixture.engine, in: fixture.workspaceId)[fixture.survivor.token], customFrame)
+
+        fixture.engine.removeWindow(token: fixture.neighbor.token, in: fixture.workspaceId)
+
+        XCTAssertFalse(fixture.column.hasManualSingleWindowWidthOverride)
+        XCTAssertEqual(layout(fixture.engine, in: fixture.workspaceId)[fixture.survivor.token], customFrame)
+    }
+
     func testRemovingExcludedNeighborPreservesExistingSoloResize() throws {
         let fixture = try makePair()
         fixture.engine.setProjectionExclusions([fixture.neighbor.token], in: fixture.workspaceId)

@@ -23,6 +23,8 @@ extension NiriLayoutEngine {
             return
         }
         let exclusionsChanged = projectionExclusions(in: workspaceId) != excludedTokens
+        let wasSingleWindow = singleWindowLayoutContext(in: workspaceId) != nil
+        defer { clearManualSpanOverridesOnSingleWindowEntry(in: workspaceId, wasSingleWindow: wasSingleWindow) }
         if excludedTokens.isEmpty {
             excludedTokensByWorkspace.removeValue(forKey: workspaceId)
         } else {
